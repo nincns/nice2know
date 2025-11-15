@@ -2,6 +2,7 @@
 """
 Nice2Know - Send Confirmation Mail v3
 Loads mail from processed/ and moves to sent/ after successful sending
+Uses hex mail_id from JSON for URLs
 """
 import sys
 import json
@@ -404,15 +405,20 @@ def fill_template_v2(template: str, problem: Dict, solution: Dict, asset: Dict,
     
     template = template.replace('{{ASSET_TECHNICAL}}', tech_html)
     
-    # Footer data - Generate actual URLs from config
+    # Footer data - Use HEX mail_id from JSON
     mail_id = problem.get('mail_id', 'N/A')
+    
+    print(f"{BLUE}[INFO] Using mail_id from JSON: {mail_id}{NC}")
     
     if mail_id != 'N/A':
         editor_url = get_editor_url(mail_id)
         confirm_url = get_confirm_url(mail_id)
+        print(f"{BLUE}[INFO] Generated Editor URL: {editor_url}{NC}")
+        print(f"{BLUE}[INFO] Generated Confirm URL: {confirm_url}{NC}")
     else:
         editor_url = '#edit'
         confirm_url = '#confirm'
+        print(f"{YELLOW}[WARN] mail_id is N/A, using placeholder URLs{NC}")
     
     support_email = get_support_email()
     
@@ -546,7 +552,8 @@ def main():
     
     print(f"\n{GREEN}✓ Data loaded{NC}")
     print(f"  Recipient: {mail_info['sender']}")
-    print(f"  Subject: Re: {mail_info['subject']}\n")
+    print(f"  Subject: Re: {mail_info['subject']}")
+    print(f"  Mail-ID (hex): {problem.get('mail_id', 'N/A')}\n")
     
     # Analyze quality
     print("Analyzing JSON quality...")
