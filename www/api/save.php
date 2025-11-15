@@ -58,25 +58,19 @@ if (!validate_mail_id($mail_id)) {
 
 debug_log("Saving data for mail_id", $mail_id);
 
-// Helper function to find existing file location
-function find_existing_file($mail_id, $filename) {
-    $directories = [PROCESSED_DIR, SENT_DIR];
-    
-    foreach ($directories as $dir) {
-        $filepath = $dir . "/{$mail_id}_{$filename}.json";
-        if (file_exists($filepath)) {
-            return $filepath;
-        }
-    }
-    
-    // If not found, default to PROCESSED_DIR for new saves
-    return PROCESSED_DIR . "/{$mail_id}_{$filename}.json";
+// Convert hex mail_id to timestamp if needed
+$timestamp = find_timestamp_from_mail_id($mail_id);
+
+if ($timestamp === null) {
+    send_error('Mail ID not found: ' . $mail_id, 404);
 }
 
-// Find existing file paths or create new ones
-$problem_file = find_existing_file($mail_id, 'problem');
-$solution_file = find_existing_file($mail_id, 'solution');
-$asset_file = find_existing_file($mail_id, 'asset');
+debug_log("Resolved timestamp", $timestamp);
+
+// Build file paths using timestamp
+$problem_file = PROCESSED_DIR . "/{$timestamp}_problem.json";
+$solution_file = PROCESSED_DIR . "/{$timestamp}_solution.json";
+$asset_file = PROCESSED_DIR . "/{$timestamp}_asset.json";
 
 // Create backup directory if it doesn't exist
 $backup_dir = STORAGE_DIR . '/backups';

@@ -38,30 +38,25 @@ if (!validate_mail_id($mail_id)) {
 
 debug_log("Loading data for mail_id", $mail_id);
 
-// Helper function to find file in multiple directories
-function find_json_file($mail_id, $filename) {
-    $directories = [PROCESSED_DIR, SENT_DIR];
-    
-    foreach ($directories as $dir) {
-        $filepath = $dir . "/{$mail_id}_{$filename}.json";
-        if (file_exists($filepath)) {
-            return $filepath;
-        }
-    }
-    
-    return null;
+// Convert hex mail_id to timestamp if needed
+$timestamp = find_timestamp_from_mail_id($mail_id);
+
+if ($timestamp === null) {
+    send_error('Mail ID not found: ' . $mail_id, 404);
 }
 
-// Find JSON files in processed/ or sent/
-$problem_file = find_json_file($mail_id, 'problem');
-$solution_file = find_json_file($mail_id, 'solution');
-$asset_file = find_json_file($mail_id, 'asset');
+debug_log("Resolved timestamp", $timestamp);
+
+// Build file paths using timestamp
+$problem_file = PROCESSED_DIR . "/{$timestamp}_problem.json";
+$solution_file = PROCESSED_DIR . "/{$timestamp}_solution.json";
+$asset_file = PROCESSED_DIR . "/{$timestamp}_asset.json";
 
 // Check if files exist
 $files_status = [
-    'problem' => $problem_file !== null,
-    'solution' => $solution_file !== null,
-    'asset' => $asset_file !== null
+    'problem' => file_exists($problem_file),
+    'solution' => file_exists($solution_file),
+    'asset' => file_exists($asset_file)
 ];
 
 debug_log("Files status", $files_status);
