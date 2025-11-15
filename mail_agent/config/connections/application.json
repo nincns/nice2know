@@ -16,3 +16,10 @@
     "file": "logs/mail_agent.log"
   }
 }
+{
+  "filters": {
+    "mark_as_read": false,
+    "move_to_processed": true,
+    "processed_folder": "processed"
+  }
+}
