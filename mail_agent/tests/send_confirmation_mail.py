@@ -37,6 +37,7 @@ WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.credentials import get_credentials
+from utils.analyze_json_quality import analyze_quality, get_field_status
 
 # Colors
 GREEN = '\033[0;32m'
@@ -87,10 +88,46 @@ def extract_mail_info(mail_path: Path) -> Dict[str, str]:
         return {'sender': 'unknown@example.com', 'subject': 'No Subject'}
 
 def fill_template(template: str, problem: Dict, solution: Dict, asset: Dict,
-                  mail_info: Dict) -> str:
-    """Fill HTML template with data (simple string replacement)"""
+                  mail_info: Dict, quality_analysis: Dict) -> str:
+    """Fill HTML template with data (simple string replacement) and quality indicators"""
     
-    # Problem data
+    # Helper function to add status indicator
+    def add_status(field_name: str, value: str) -> str:
+        status = get_field_status(field_name, quality_analysis)
+        if status == 'complete':
+            return f'<span style="color: #4caf50;">✓</span> {value}'
+        elif status == 'missing':
+            return f'<span style="color: #ff9800;">⚠</span> <span style="color: #999;">{value or "[Nicht erkannt]"}</span>'
+        elif status == 'unclear':
+            return f'<span style="color: #2196f3;">❓</span> {value}'
+        return value
+    
+    template = template.replace('{{reporter_name}}',
+                               problem.get('reporter', {}).get('name', 'Benutzer'))
+    
+    # Add quality summary after intro
+    quality_html = f"""
+            <!-- Quality Summary -->
+            <div style="background-color: #e8f5e9; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size: 24px;">📊</span>
+                    <strong style="font-size: 16px;">Datenqualität: {quality_analysis['summary']['completeness_percent']}%</strong>
+                </div>
+                <div style="font-size: 14px; color: #666;">
+                    <span style="color: #4caf50;">✓ {quality_analysis['summary']['complete_count']} Felder vollständig</span> • 
+                    <span style="color: #ff9800;">⚠ {quality_analysis['summary']['missing_count']} fehlen</span> • 
+                    <span style="color: #2196f3;">❓ {quality_analysis['summary']['unclear_count']} unklar</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 13px; color: #666; font-style: italic;">
+                    Fehlende oder unklare Felder sind unten markiert. Sie können diese über den Button korrigieren/ergänzen.
+                </div>
+            </div>
+    """
+    
+    # Insert quality summary into template (after intro section)
+    template = template.replace('</div>\n            \n            <!-- Problem Section -->',
+                               '</div>\n' + quality_html + '\n            <!-- Problem Section -->')
+    
     template = template.replace('{{reporter_name}}',
                                problem.get('reporter', {}).get('name', 'Benutzer'))
     template = template.replace('{{problem_title}}',
@@ -205,6 +242,20 @@ def fill_template(template: str, problem: Dict, solution: Dict, asset: Dict,
                                asset.get('asset', {}).get('criticality', 'N/A'))
     template = template.replace('{{asset_status}}',
                                asset.get('asset', {}).get('status', 'N/A'))
+    
+    # Technical details with status indicators
+    software = asset.get('technical', {}).get('software')
+    version = asset.get('technical', {}).get('version')
+    platform = asset.get('technical', {}).get('platform')
+    
+    # Add status for version/platform
+    version_status = get_field_status('asset_version', quality_analysis)
+    platform_status = get_field_status('asset_platform', quality_analysis)
+    
+    if version_status == 'missing':
+        version = '<span style="color: #ff9800;">⚠ Nicht erkannt</span>'
+    if platform_status == 'missing':
+        platform = '<span style="color: #ff9800;">⚠ Nicht erkannt</span>'
     
     # Technical details (optional)
     software = asset.get('technical', {}).get('software')
@@ -342,9 +393,19 @@ def main():
         print(f"Loading mail: {mail_path.name}")
         mail_info = extract_mail_info(mail_path)
     
-    print(f"\n{GREEN}✓ Data loaded{NC}")
+    print(f"{GREEN}✓ Data loaded{NC}")
     print(f"  Recipient: {mail_info['sender']}")
     print(f"  Subject: Re: {mail_info['subject']}\n")
+    
+    # Analyze JSON quality
+    print("Analyzing JSON quality...")
+    quality_analysis = analyze_quality(problem, solution, asset)
+    
+    print(f"  ✓ Complete: {quality_analysis['summary']['complete_count']}")
+    print(f"  ⚠ Missing:  {quality_analysis['summary']['missing_count']}")
+    print(f"  ❓ Unclear:  {quality_analysis['summary']['unclear_count']}")
+    print(f"  Overall:    {quality_analysis['summary']['completeness_percent']}%")
+    print()
     
     # Load HTML template
     template_path = WORKING_DIR / 'catalog' / 'mail' / 'added_knowledge_mail.html'
@@ -355,7 +416,7 @@ def main():
     
     # Fill template
     print("Filling template with data...")
-    html_body = fill_template(template, problem, solution, asset, mail_info)
+    html_body = fill_template(template, problem, solution, asset, mail_info, quality_analysis)
     
     print(f"{GREEN}✓ Template filled ({len(html_body)} chars){NC}\n")
     
