@@ -44,21 +44,18 @@
 
 flowchart TD
 
-    subgraph IMAP["IMAP Mailbox"]
-    end
+    IMAP["IMAP Mailbox"] -->|IMAP/SSL| FETCHER
 
-    IMAP -->|IMAP/SSL| FETCHER
-
-    subgraph FETCHER["Mail Fetcher  
-(mail_agent/agents/imap_fetcher.py)"]
+    subgraph FETCHER["Mail Fetcher"]
+        F_PATH["mail_agent/agents/imap_fetcher.py"]
         F1[IMAP Connect]
         F2[Fetch Unseen]
     end
 
     FETCHER --> PARSER
 
-    subgraph PARSER["Mail Parser  
-(mail_agent/agents/mail_parser.py)"]
+    subgraph PARSER["Mail Parser"]
+        P_PATH["mail_agent/agents/mail_parser.py"]
         P1[Headers]
         P2[Body (Text)]
         P3[Attachments]
@@ -66,8 +63,8 @@ flowchart TD
 
     PARSER --> ATTACH
 
-    subgraph ATTACH["Attachment Store  
-(mail_agent/agents/attachment_handler.py)"]
+    subgraph ATTACH["Attachment Store"]
+        A_PATH["mail_agent/agents/attachment_handler.py"]
         A1[/images/]
         A2[/documents/]
         A3[/logs/]
@@ -75,9 +72,9 @@ flowchart TD
 
     ATTACH --> LLM
 
-    subgraph LLM["OLLAMA LLM Engine  
-(mail_agent/agents/llm_request.py)"]
-        direction TB
+    subgraph LLM["OLLAMA LLM Engine"]
+        L_PATH["mail_agent/agents/llm_request.py"]
+
         subgraph PROMPTS["Prompts"]
             PR1[extract_problem.txt]
             PR2[extract_solution.txt]
@@ -101,8 +98,8 @@ flowchart TD
 
     JSONGEN --> STORAGE
 
-    subgraph STORAGE["File Storage (Staging)  
-(mail_agent/storage/processed/)"]
+    subgraph STORAGE["File Storage (Staging)"]
+        ST_PATH["mail_agent/storage/processed/"]
         ST1[Next step: PostgreSQL (Work in Progress)]
     end
 
