@@ -20,8 +20,8 @@ class N2KLogger:
         if self._initialized:
             return
         
-        # Load config
-        config_path = Path(__file__).parent.parent / 'config' / 'connections' / 'mail_config.json'
+        # Load application config for logging settings
+        config_path = Path(__file__).parent.parent / 'config' / 'connections' / 'application.json'
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         

@@ -16,11 +16,41 @@ logger = get_logger()
 
 def load_config(config_path: str = None) -> dict:
     """Load mail agent configuration"""
-    if not config_path:
-        config_path = Path(__file__).parent / 'config' / 'connections' / 'mail_config.json'
+    config_dir = Path(__file__).parent / 'config' / 'connections'
     
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    # Load mail connection config
+    if not config_path:
+        mail_config_path = config_dir / 'mail_config.json'
+    else:
+        mail_config_path = Path(config_path)
+    
+    with open(mail_config_path, 'r', encoding='utf-8') as f:
+        mail_config = json.load(f)
+    
+    # Load application config for storage/logging/processing settings
+    app_config_path = config_dir / 'application.json'
+    with open(app_config_path, 'r', encoding='utf-8') as f:
+        app_config = json.load(f)
+    
+    # Merge configs: mail connection settings + application settings
+    config = {
+        'imap': mail_config.get('imap', {}),
+        'smtp': mail_config.get('smtp', {}),
+        'storage': app_config.get('storage', {}),
+        'logging': app_config.get('logging', {}),
+        # Add default processing/filters if not in app_config
+        'processing': {
+            'fetch_limit': 10,
+            'fetch_unseen_only': True,
+            'save_raw_eml': True,
+            'extract_attachments': True
+        },
+        'filters': {
+            'mark_as_read': False
+        }
+    }
+    
+    return config
 
 def run_agent(config: dict, dry_run: bool = False):
     """Main agent execution"""
