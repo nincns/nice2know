@@ -19,7 +19,13 @@ class IMAPFetcher:
     def __init__(self, config: dict):
         self.config = config
         self.imap_config = config['imap']
-        self.credentials = get_credentials().get_imap_credentials()
+        # Load secrets directly with new structure
+        creds = get_credentials()
+        mail_secrets = creds._secrets.get('mail', {})
+        self.credentials = {
+            'username': mail_secrets.get('imap_username', ''),
+            'password': mail_secrets.get('imap_password', '')
+        }
         self.connection = None
     
     def connect(self) -> bool:
@@ -27,18 +33,18 @@ class IMAPFetcher:
         try:
             if self.imap_config['use_ssl']:
                 self.connection = imaplib.IMAP4_SSL(
-                    self.imap_config['host'], 
+                    self.imap_config['host'],
                     self.imap_config['port']
                 )
             else:
                 self.connection = imaplib.IMAP4(
-                    self.imap_config['host'], 
+                    self.imap_config['host'],
                     self.imap_config['port']
                 )
             
             # Credentials from secrets.json
             self.connection.login(
-                self.credentials['username'], 
+                self.credentials['username'],
                 self.credentials['password']
             )
             
