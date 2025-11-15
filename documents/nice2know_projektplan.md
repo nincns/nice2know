@@ -1,72 +1,73 @@
-# nice2know - Projektplan
+# nice2know - Project Plan
 
-**Version:** 1.0  
-**Datum:** 15.11.2025  
-**Status:** Konzeptphase  
-**Verantwortlich:** Servicezentrum Informatik, EAH
+**Version:** 1.1  
+**Date:** November 15, 2025  
+**Status:** Concept Phase  
 
 ---
 
 ## 1. Executive Summary
 
-**nice2know** ist ein intelligentes Wissensmanagement-System, das E-Mail-basierte Support-Kommunikation automatisch in eine durchsuchbare, strukturierte Knowledge Base überführt. Durch KI-gestützte Analyse werden Probleme, Lösungen und betroffene IT-Assets extrahiert und in einer mehrdimensionalen JSON-Struktur persistiert.
+**nice2know** is an intelligent knowledge management system that automatically transforms email-based support communication into a searchable, structured knowledge base. Through AI-powered analysis using local OLLAMA models, problems, solutions, and affected IT assets are extracted and persisted in a multi-dimensional JSON structure.
 
-### Kernziele
-- Automatische Extraktion von Supportwissen aus E-Mail-Konversationen
-- Strukturierte Ablage nach Problem-Lösung-Asset-Modell
-- Wiederverwendbarkeit von Lösungen über Asset-Kategorien
-- Reduzierung von Bearbeitungszeiten durch Wissenstransfer
+### Core Objectives
+- Automatic extraction of support knowledge from email conversations
+- Structured storage using Problem-Solution-Asset model
+- Reusability of solutions across asset categories
+- Reduction of processing times through knowledge transfer
+- Privacy-compliant local AI processing
 
 ---
 
-## 2. Projektbeschreibung
+## 2. Project Description
 
-### 2.1 Ausgangssituation
-Das Servicezentrum Informatik erhält täglich Support-Anfragen per E-Mail. Diese enthalten wertvolles Wissen über:
-- Wiederkehrende Probleme mit IT-Systemen
-- Bewährte Lösungsansätze
-- System-spezifische Konfigurationen
-- Fehlerdiagnosen und Workarounds
+### 2.1 Initial Situation
+IT support departments receive daily support requests via email. These contain valuable knowledge about:
+- Recurring problems with IT systems
+- Proven solution approaches
+- System-specific configurations
+- Error diagnostics and workarounds
 
-Aktuell geht dieses Wissen nach Lösung des Tickets verloren oder ist nur über E-Mail-Suche auffindbar.
+Currently, this knowledge is lost after ticket resolution or is only retrievable through email search.
 
-### 2.2 Projektvision
-**nice2know** transformiert jeden Support-Case in strukturiertes Wissen:
+### 2.2 Project Vision
+**nice2know** transforms every support case into structured knowledge:
 
 ```
-E-Mail → KI-Analyse → Strukturierte Daten → Knowledge Base → Schnellere Lösungen
+Email → AI Analysis → Structured Data → Knowledge Base → Faster Solutions
 ```
 
-### 2.3 Mehrwert
-1. **Für Supporter:** Schneller Zugriff auf bewährte Lösungen
-2. **Für Assets:** Vollständige Problemhistorie pro System
-3. **Für Organisation:** Identifikation systemischer Schwachstellen
-4. **Für Onboarding:** Neue Mitarbeiter lernen aus realen Cases
+### 2.3 Value Proposition
+1. **For Supporters:** Fast access to proven solutions
+2. **For Assets:** Complete problem history per system
+3. **For Organization:** Identification of systemic weaknesses
+4. **For Onboarding:** New staff learn from real cases
 
 ### 2.4 Scope
 
 #### In Scope
-- E-Mail-Import mit Anhang-Verarbeitung
-- KI-basierte Problem/Lösung-Extraktion
-- Asset-Identifikation und -Katalogisierung
-- JSON-Export für Datenbank-Integration
-- Verlinkung verwandter Cases
+- Email import with attachment processing
+- AI-based problem/solution extraction
+- Asset identification and cataloging
+- JSON export for database integration
+- Linking of related cases
+- Local OLLAMA integration for privacy
 
 #### Out of Scope (Phase 1)
-- Automatische Ticket-Erstellung
-- Echtzeit-Chat-Integration
-- Predictive Maintenance
-- Automatisierte Lösungsvorschläge während Ticket-Bearbeitung
+- Automatic ticket creation
+- Real-time chat integration
+- Predictive maintenance
+- Automated solution suggestions during ticket processing
 
 ---
 
-## 3. Datenflussmodell
+## 3. Data Flow Model
 
-### 3.1 Überblick
+### 3.1 Overview
 
 ```
 ┌─────────────────┐
-│   E-Mail Box    │
+│   Email Box     │
 │  (IMAP/API)     │
 └────────┬────────┘
          │
@@ -80,173 +81,173 @@ E-Mail → KI-Analyse → Strukturierte Daten → Knowledge Base → Schnellere 
          │
          ▼
 ┌─────────────────────────────────────┐
-│     LLM Processing Engine           │
-│  ┌─────────────────────────────┐   │
-│  │  1. Problem Extraction      │   │
-│  │  2. Solution Identification │   │
-│  │  3. Asset Recognition       │   │
-│  │  4. Context Analysis        │   │
-│  └─────────────────────────────┘   │
+│     OLLAMA Processing Engine        │
+│  ┌─────────────────────────────┐    │
+│  │  1. Problem Extraction      │    │
+│  │  2. Solution Identification │    │
+│  │  3. Asset Recognition       │    │
+│  │  4. Context Analysis        │    │
+│  └─────────────────────────────┘    │
 └────────┬────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────┐
 │     JSON Generator                  │
-│  ┌──────────┬──────────┬─────────┐ │
-│  │ Problem  │ Solution │  Asset  │ │
-│  │   JSON   │   JSON   │  JSON   │ │
-│  └──────────┴──────────┴─────────┘ │
+│  ┌──────────┬──────────┬─────────┐  │
+│  │ Problem  │ Solution │  Asset  │  │
+│  │   JSON   │   JSON   │  JSON   │  │
+│  └──────────┴──────────┴─────────┘  │
 │           │                         │
 │           ▼                         │
-│     ┌──────────┐                   │
-│     │   Case   │                   │
-│     │   JSON   │                   │
-│     └──────────┘                   │
+│     ┌──────────┐                    │
+│     │   Case   │                    │
+│     │   JSON   │                    │
+│     └──────────┘                    │
 └────────┬────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────┐
-│    Knowledge Base Database          │
-│  ┌─────────────────────────────┐   │
-│  │  - Problems Collection      │   │
-│  │  - Solutions Collection     │   │
-│  │  - Assets Collection        │   │
-│  │  - Cases Collection         │   │
-│  └─────────────────────────────┘   │
+│    PostgreSQL Database (JSONB)      │
+│  ┌─────────────────────────────┐    │
+│  │  - Problems Table           │    │
+│  │  - Solutions Table          │    │
+│  │  - Assets Table             │    │
+│  │  - Cases Table              │    │
+│  └─────────────────────────────┘    │
 └─────────────────────────────────────┘
 ```
 
-### 3.2 Detaillierter Datenfluss
+### 3.2 Detailed Data Flow
 
-#### Phase 1: E-Mail Ingestion
+#### Phase 1: Email Ingestion
 ```
-Input: E-Mail (MIME Format)
+Input: Email (MIME Format)
 ├── Headers (From, To, Subject, Date, Message-ID)
 ├── Body (Plain Text / HTML)
 └── Attachments []
     ├── Screenshots (PNG, JPG) → OCR
     ├── Logs (TXT, LOG) → Text Extraction
-    ├── Dokumente (PDF, DOCX) → Text Extraction
-    └── Sonstige → Referenz speichern
+    ├── Documents (PDF, DOCX) → Text Extraction
+    └── Other → Store reference
 ```
 
-#### Phase 2: LLM Analysis
+#### Phase 2: OLLAMA Analysis
 ```
 Input: Parsed Mail Content + Attachments
 Process:
-  1. Kontext-Analyse (Welches System? Welches Problem?)
-  2. Problem-Extraktion (Symptome, Fehlermeldungen, Kontext)
-  3. Lösungs-Identifikation (Schritte, Outcome, Validation)
-  4. Asset-Mapping (Welches System ist betroffen?)
-  5. Kategorisierung (Severity, Type, Reusability Score)
-Output: Strukturierte Daten (Pre-JSON)
+  1. Context Analysis (Which system? Which problem?)
+  2. Problem Extraction (Symptoms, error messages, context)
+  3. Solution Identification (Steps, outcome, validation)
+  4. Asset Mapping (Which system is affected?)
+  5. Categorization (Severity, type, reusability score)
+Output: Structured Data (Pre-JSON)
 ```
 
 #### Phase 3: JSON Generation
 ```
-Input: Strukturierte Daten
+Input: Structured Data
 Process:
-  1. Generiere Problem-JSON (leichtgewichtig)
-  2. Generiere Solution-JSON(s) (detailliert, Steps)
-  3. Identifiziere/Erstelle Asset-JSON (wenn neu)
-  4. Erstelle Case-JSON (Linking)
-  5. Validierung (Schema-Check, ID-Konsistenz)
-Output: 3-4 JSON-Dateien pro Case
+  1. Generate Problem JSON (lightweight)
+  2. Generate Solution JSON(s) (detailed, steps)
+  3. Identify/Create Asset JSON (if new)
+  4. Create Case JSON (linking)
+  5. Validation (schema check, ID consistency)
+Output: 3-4 JSON files per case
 ```
 
 #### Phase 4: Persistence
 ```
-Input: Validierte JSONs
+Input: Validated JSONs
 Process:
-  1. Upsert Asset (wenn bereits vorhanden: Update)
+  1. Upsert Asset (if exists: update)
   2. Insert Problem
   3. Insert Solution(s)
-  4. Insert Case (mit Referenzen)
+  4. Insert Case (with references)
   5. Update Cross-References
 Output: Database Records + IDs
 ```
 
-### 3.3 Anhang-Verarbeitungsstrategie
+### 3.3 Attachment Processing Strategy
 
-| Dateityp | Verarbeitung | Speicherort | Integration |
-|----------|--------------|-------------|-------------|
+| File Type | Processing | Storage Location | Integration |
+|----------|-------------|------------------|-------------|
 | PNG/JPG | OCR (Tesseract) | Object Storage | Text → Problem Context |
-| PDF | Text-Extraktion | Object Storage | Separate KB-Article oder Problem-Annex |
-| TXT/LOG | Direktes Parsing | Inline in JSON | Array in `error_messages` |
-| DOCX | Text-Extraktion | Object Storage | Separate KB-Article |
-| Sonstige | Nur Metadaten | Object Storage | Manuelles Review Flag |
+| PDF | Text Extraction | Object Storage | Separate KB Article or Problem Annex |
+| TXT/LOG | Direct Parsing | Inline in JSON | Array in `error_messages` |
+| DOCX | Text Extraction | Object Storage | Separate KB Article |
+| Other | Metadata Only | Object Storage | Manual Review Flag |
 
 ---
 
-## 4. Systemarchitektur
+## 4. System Architecture
 
-### 4.1 Komponenten
+### 4.1 Components
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                     nice2know System                      │
+│                     nice2know System                     │
 ├──────────────────────────────────────────────────────────┤
-│                                                           │
-│  ┌────────────────┐        ┌──────────────────┐         │
-│  │  Mail Fetcher  │───────▶│  Queue Manager   │         │
-│  │  (IMAP/API)    │        │  (RabbitMQ/SQS)  │         │
-│  └────────────────┘        └─────────┬────────┘         │
-│                                       │                   │
-│                                       ▼                   │
+│                                                          │
+│  ┌────────────────┐        ┌──────────────────┐          │
+│  │  Mail Fetcher  │───────▶│  Queue Manager   │          │
+│  │  (IMAP/API)    │        │  (RabbitMQ)      │          │
+│  └────────────────┘        └─────────┬────────┘          │
+│                                       │                  │
+│                                       ▼                  │
 │                            ┌──────────────────┐          │
 │                            │  Worker Pool     │          │
 │                            │  - Mail Parser   │          │
-│                            │  - LLM Processor │          │
+│                            │  - OLLAMA Proc   │          │
 │                            │  - JSON Gen      │          │
 │                            └─────────┬────────┘          │
-│                                      │                    │
-│                                      ▼                    │
-│  ┌────────────────────────────────────────────┐         │
+│                                      │                   │
+│                                      ▼                   │
+│  ┌──────────────────────────────────────────-──┐         │
 │  │         Storage Layer                       │         │
-│  ├──────────────────┬──────────────────────────┤        │
-│  │  JSON Files      │   Knowledge Base DB      │        │
-│  │  (Staging)       │   (MongoDB/PostgreSQL)   │        │
-│  └──────────────────┴──────────────────────────┘        │
-│                                                           │
-│  ┌────────────────────────────────────────────┐         │
+│  ├──────────────────┬──────────────────────────┤         │
+│  │  JSON Files      │   PostgreSQL DB          │         │
+│  │  (Staging)       │   (JSONB Tables)         │         │
+│  └──────────────────┴──────────────────────────┘         │
+│                                                          │
+│  ┌─────────────────────────────────────────-───┐         │
 │  │         API Layer                           │         │
 │  │  - REST API (CRUD Operations)               │         │
 │  │  - Search API (Full-Text, Faceted)          │         │
 │  │  - Analytics API (Metrics, Trends)          │         │
-│  └────────────────────────────────────────────┘         │
-│                                                           │
+│  └─────────────────────────────────────────-───┘         │
+│                                                          │
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Technologie-Stack (Empfehlung)
+### 4.2 Technology Stack
 
-| Layer | Technologie | Begründung |
-|-------|-------------|------------|
+| Layer | Technology | Rationale |
+|-------|-------------|-----------|
 | Mail Fetcher | Python + IMAPlib | Standard, robust |
-| Queue | RabbitMQ | Zuverlässig, Open Source |
-| LLM Processing | Claude API (Anthropic) | Exzellente Extraction-Fähigkeiten |
-| Worker Pool | Python + Celery | Skalierbar, etabliert |
-| Database | MongoDB | Schema-flexibel für JSON |
+| Queue | RabbitMQ | Reliable, open source |
+| **AI Processing** | **OLLAMA (local)** | **Privacy, no costs, no rate limits** |
+| Worker Pool | Python + Celery | Scalable, established |
+| **Database** | **PostgreSQL + JSONB** | **Relational integrity + JSON flexibility** |
 | Object Storage | MinIO / S3 | Attachments |
-| API | FastAPI (Python) | Schnell, moderne Async-Support |
+| API | FastAPI (Python) | Fast, modern async support |
 | Frontend | React + TypeScript | (Optional, Phase 2) |
 
 ---
 
-## 5. JSON-Datenstruktur
+## 5. JSON Data Structure
 
-### 5.1 Übersicht der JSON-Typen
+### 5.1 Overview of JSON Types
 
-nice2know verwendet **4 separate JSON-Strukturen** pro Support-Case:
+nice2know uses **4 separate JSON structures** per support case:
 
-1. **Problem JSON** - Leichtgewichtig, schnelle Suche
-2. **Solution JSON** - Detailliert, wiederverwendbar
-3. **Asset JSON** - Katalog der IT-Systeme
-4. **Case JSON** - Orchestrierung und Linking
+1. **Problem JSON** - Lightweight, fast search
+2. **Solution JSON** - Detailed, reusable
+3. **Asset JSON** - IT systems catalog
+4. **Case JSON** - Orchestration and linking
 
-### 5.2 Versionierung
+### 5.2 Versioning
 
-Alle JSONs verwenden semantische Versionierung:
+All JSONs use semantic versioning:
 ```json
 {
   "schema_version": "1.0.0",
@@ -258,8 +259,8 @@ Alle JSONs verwenden semantische Versionierung:
 
 ## 6. Problem JSON
 
-### 6.1 Zweck
-Erfasst die **Problemstellung** aus der E-Mail in kompakter Form. Optimiert für schnelle Volltextsuche und Kategorisierung.
+### 6.1 Purpose
+Captures the **problem statement** from the email in compact form. Optimized for fast full-text search and categorization.
 
 ### 6.2 Schema
 
@@ -269,27 +270,27 @@ Erfasst die **Problemstellung** aus der E-Mail in kompakter Form. Optimiert für
   "type": "n2k_problem",
   "id": "prob_0cb386ae2c684a53a69e8a4a786a298e",
   "mail_id": "0cb386ae-2c68-4a53-a69e-8a4a786a298e",
-  "asset_id": "asset_mailsystem_eah_01",
+  "asset_id": "asset_mailsystem_01",
   "timestamp": "2025-11-15T10:35:57.424Z",
   "reporter": {
-    "name": "Hentschke",
-    "email": "hentschke@eah-jena.de",
-    "department": "Servicezentrum Informatik"
+    "name": "John Smith",
+    "email": "john.smith@company.com",
+    "department": "IT Support"
   },
   "problem": {
-    "title": "Mail-System nimmt keine eingehenden Mails entgegen",
-    "description": "Das System verweigert die Annahme von E-Mails. Absender erhalten Bounce-Messages.",
+    "title": "Mail system not accepting incoming emails",
+    "description": "System rejects email acceptance. Senders receive bounce messages.",
     "symptoms": [
-      "Eingehende Mails werden abgelehnt",
-      "Mailhistorie fehlt idealerweise"
+      "Incoming mails are rejected",
+      "Mail history missing"
     ],
     "error_messages": [
       "SMTP 550 - Mailbox unavailable",
-      "Lokales Spammodell blockiert Zustellung"
+      "Local spam model blocking delivery"
     ],
     "affected_functionality": [
-      "E-Mail Empfang",
-      "Mail-to-Know-System Integration"
+      "Email Reception",
+      "Mail-to-Knowledge-System Integration"
     ]
   },
   "classification": {
@@ -297,7 +298,7 @@ Erfasst die **Problemstellung** aus der E-Mail in kompakter Form. Optimiert für
     "subcategory": "incoming_mail",
     "severity": "high",
     "priority": "quick_win",
-    "affected_users": "alle",
+    "affected_users": "all",
     "business_impact": "critical"
   },
   "context": {
@@ -311,48 +312,48 @@ Erfasst die **Problemstellung** aus der E-Mail in kompakter Form. Optimiert für
 }
 ```
 
-### 6.3 Schlüsselbeschreibung
+### 6.3 Key Descriptions
 
-| Schlüssel | Typ | Pflicht | Beschreibung |
-|-----------|-----|---------|--------------|
-| `schema_version` | String | Ja | Versionsnummer des JSON-Schemas |
-| `type` | String | Ja | Immer "n2k_problem" |
-| `id` | String | Ja | Eindeutige Problem-ID (prob_...) |
-| `mail_id` | String | Ja | Referenz zur Original-Mail (aus E-Mail Message-ID) |
-| `asset_id` | String | Ja | Referenz zum betroffenen Asset |
-| `timestamp` | ISO8601 | Ja | Zeitpunkt der Problemmeldung |
-| `reporter.name` | String | Ja | Name des Meldenden |
-| `reporter.email` | String | Ja | E-Mail des Meldenden |
-| `reporter.department` | String | Nein | Abteilung (für Statistiken) |
-| `problem.title` | String | Ja | Kurze, prägnante Problembeschreibung (max 200 Zeichen) |
-| `problem.description` | String | Ja | Ausführliche Beschreibung |
-| `problem.symptoms` | Array[String] | Ja | Liste beobachtbarer Symptome |
-| `problem.error_messages` | Array[String] | Nein | Fehlermeldungen (Logs, Screenshots via OCR) |
-| `problem.affected_functionality` | Array[String] | Nein | Welche Funktionen sind betroffen? |
-| `classification.category` | Enum | Ja | Hauptkategorie (siehe 6.4) |
-| `classification.subcategory` | String | Nein | Feingranulare Kategorie |
-| `classification.severity` | Enum | Ja | low, medium, high, critical |
-| `classification.priority` | String | Nein | Z.B. "quick_win" aus Original-Mail |
-| `classification.affected_users` | String | Nein | Anzahl/Gruppe betroffener Nutzer |
-| `classification.business_impact` | Enum | Nein | low, medium, high, critical |
-| `context.time_of_occurrence` | ISO8601 | Nein | Wann trat das Problem auf? |
-| `context.frequency` | Enum | Nein | once, intermittent, continuous |
-| `context.environment` | Enum | Nein | production, staging, development |
-| `context.related_changes` | Array[String] | Nein | Kürzliche Änderungen am System |
-| `status` | Enum | Ja | open, in_progress, resolved, closed |
-| `resolution_date` | ISO8601 | Nein | Wann wurde das Problem gelöst? |
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `schema_version` | String | Yes | Version number of JSON schema |
+| `type` | String | Yes | Always "n2k_problem" |
+| `id` | String | Yes | Unique problem ID (prob_...) |
+| `mail_id` | String | Yes | Reference to original email (from Email Message-ID) |
+| `asset_id` | String | Yes | Reference to affected asset |
+| `timestamp` | ISO8601 | Yes | Timestamp of problem report |
+| `reporter.name` | String | Yes | Name of reporter |
+| `reporter.email` | String | Yes | Email of reporter |
+| `reporter.department` | String | No | Department (for statistics) |
+| `problem.title` | String | Yes | Brief, concise problem description (max 200 chars) |
+| `problem.description` | String | Yes | Detailed description |
+| `problem.symptoms` | Array[String] | Yes | List of observable symptoms |
+| `problem.error_messages` | Array[String] | No | Error messages (logs, screenshots via OCR) |
+| `problem.affected_functionality` | Array[String] | No | Which functions are affected? |
+| `classification.category` | Enum | Yes | Main category (see 6.4) |
+| `classification.subcategory` | String | No | Fine-grained category |
+| `classification.severity` | Enum | Yes | low, medium, high, critical |
+| `classification.priority` | String | No | E.g., "quick_win" from original email |
+| `classification.affected_users` | String | No | Number/group of affected users |
+| `classification.business_impact` | Enum | No | low, medium, high, critical |
+| `context.time_of_occurrence` | ISO8601 | No | When did the problem occur? |
+| `context.frequency` | Enum | No | once, intermittent, continuous |
+| `context.environment` | Enum | No | production, staging, development |
+| `context.related_changes` | Array[String] | No | Recent changes to the system |
+| `status` | Enum | Yes | open, in_progress, resolved, closed |
+| `resolution_date` | ISO8601 | No | When was the problem solved? |
 
-### 6.4 Kategorien (Enumerations)
+### 6.4 Categories (Enumerations)
 
 #### category
 ```
-- email (E-Mail-Systeme)
+- email (Email Systems)
 - identity (LDAP, Active Directory, SSO)
 - network (Switches, Firewalls, VPN)
-- application (Business-Apps, ERP, LMS)
+- application (Business Apps, ERP, LMS)
 - infrastructure (Server, Storage, Backup)
 - client (Workstations, Mobile Devices)
-- security (Malware, Zugriffsprobleme)
+- security (Malware, Access Issues)
 - other
 ```
 
@@ -360,8 +361,8 @@ Erfasst die **Problemstellung** aus der E-Mail in kompakter Form. Optimiert für
 
 ## 7. Solution JSON
 
-### 7.1 Zweck
-Dokumentiert **Lösungswege** in wiederverwendbarer Form. Kann auf mehrere Probleme anwendbar sein. Enthält detaillierte Schritt-für-Schritt-Anleitungen.
+### 7.1 Purpose
+Documents **solution approaches** in reusable form. Can be applicable to multiple problems. Contains detailed step-by-step instructions.
 
 ### 7.2 Schema
 
@@ -373,76 +374,74 @@ Dokumentiert **Lösungswege** in wiederverwendbarer Form. Kann auf mehrere Probl
   "problem_ids": [
     "prob_0cb386ae2c684a53a69e8a4a786a298e"
   ],
-  "asset_id": "asset_mailsystem_eah_01",
+  "asset_id": "asset_mailsystem_01",
   "timestamp": "2025-11-15T14:20:00Z",
   "solution": {
-    "title": "E-Mail Import in Knowledge Base aktivieren",
+    "title": "Enable email import to knowledge base",
     "type": "configuration",
     "approach": "workaround",
-    "description": "Integration des Mail-Systems mit der Knowledge Base durch Import-Funktion. Normaler Mailfluss bleibt erhalten, zusätzlich werden Konversationen automatisch in die Wissensdatenbank übernommen.",
+    "description": "Integration of mail system with knowledge base through import function. Normal mail flow remains intact, additionally conversations are automatically imported into knowledge database.",
     "prerequisites": [
-      "Zugriff auf Mail-System Konfiguration",
-      "Knowledge Base muss erreichbar sein",
-      "API-Token für Knowledge Base"
+      "Access to mail system configuration",
+      "Knowledge base must be reachable",
+      "API token for knowledge base"
     ],
     "steps": [
       {
         "step_number": 1,
-        "action": "Knowledge Base Import-API konfigurieren",
-        "details": "API-Endpoint /api/import/mail in der Mail-System Config eintragen",
-        "command": "echo 'KB_IMPORT_URL=https://kb.eah-jena.de/api/import/mail' >> /etc/mail/config.env",
-        "expected_result": "Config-Datei enthält neue Variable",
+        "action": "Configure knowledge base import API",
+        "details": "Add API endpoint /api/import/mail in mail system config",
+        "command": "echo 'KB_IMPORT_URL=https://kb.example.com/api/import/mail' >> /etc/mail/config.env",
+        "expected_result": "Config file contains new variable",
         "estimated_duration": "2 min"
       },
       {
         "step_number": 2,
-        "action": "Mail-Routing anpassen",
-        "details": "Eingehende Mails zusätzlich an KB-Import weiterleiten",
+        "action": "Adjust mail routing",
+        "details": "Forward incoming mails additionally to KB import",
         "command": null,
-        "expected_result": "Mails werden dupliziert (Normal-Delivery + KB-Import)",
+        "expected_result": "Mails are duplicated (normal delivery + KB import)",
         "estimated_duration": "5 min"
       },
       {
         "step_number": 3,
-        "action": "Test-Mail senden",
-        "details": "Testmail an System senden und KB-Import verifizieren",
+        "action": "Send test mail",
+        "details": "Send test email to system and verify KB import",
         "command": null,
-        "expected_result": "Mail erscheint sowohl in Mailbox als auch in Knowledge Base",
+        "expected_result": "Mail appears in both mailbox and knowledge base",
         "estimated_duration": "3 min"
       }
     ],
     "validation": {
       "success_criteria": [
-        "Mails werden regulär zugestellt",
-        "KB-Import läuft automatisch",
-        "Keine Fehler in Mail-Logs"
+        "Mails are delivered regularly",
+        "KB import runs automatically",
+        "No errors in mail logs"
       ],
-      "test_procedure": "Test-Mail senden und nach 5 Minuten in KB suchen",
-      "rollback_plan": "Import-URL aus Config entfernen, Mail-Service neu starten"
+      "test_procedure": "Send test mail and search in KB after 5 minutes",
+      "rollback_plan": "Remove import URL from config, restart mail service"
     },
     "outcome": {
       "tested": true,
       "successful": true,
       "side_effects": [
-        "Zusätzlicher Storage-Verbrauch für KB-Daten"
+        "Additional storage consumption for KB data"
       ],
       "performance_impact": "minimal"
     }
   },
   "metadata": {
-    "author": "Hentschke",
+    "author": "Support Team",
     "source": "Support-Case 0cb386ae",
     "reusability_score": 0.85,
     "complexity": "low",
     "estimated_time": "10 min",
     "required_skills": [
-      "Mail-Server Administration",
-      "Basiskenntnisse API-Integration"
+      "Mail server administration",
+      "Basic API integration knowledge"
     ]
   },
-  "related_solutions": [
-    "sol_xyz123..." 
-  ],
+  "related_solutions": [],
   "tags": [
     "mail",
     "knowledge-base",
@@ -452,49 +451,49 @@ Dokumentiert **Lösungswege** in wiederverwendbarer Form. Kann auf mehrere Probl
 }
 ```
 
-### 7.3 Schlüsselbeschreibung
+### 7.3 Key Descriptions
 
-| Schlüssel | Typ | Pflicht | Beschreibung |
-|-----------|-----|---------|--------------|
-| `schema_version` | String | Ja | Versionsnummer des JSON-Schemas |
-| `type` | String | Ja | Immer "n2k_solution" |
-| `id` | String | Ja | Eindeutige Solution-ID (sol_...) |
-| `problem_ids` | Array[String] | Ja | Liste aller Probleme, die diese Lösung adressiert |
-| `asset_id` | String | Ja | Asset, für das diese Lösung gilt |
-| `timestamp` | ISO8601 | Ja | Zeitpunkt der Lösungsdokumentation |
-| `solution.title` | String | Ja | Prägnanter Lösungstitel |
-| `solution.type` | Enum | Ja | configuration, bugfix, workaround, update, other |
-| `solution.approach` | Enum | Ja | permanent_fix, workaround, temporary |
-| `solution.description` | String | Ja | Ausführliche Beschreibung der Lösung |
-| `solution.prerequisites` | Array[String] | Nein | Was muss vorhanden/erfüllt sein? |
-| `solution.steps` | Array[Object] | Ja | Schrittweise Anleitung (siehe 7.4) |
-| `solution.validation.success_criteria` | Array[String] | Nein | Woran erkennt man Erfolg? |
-| `solution.validation.test_procedure` | String | Nein | Wie testet man die Lösung? |
-| `solution.validation.rollback_plan` | String | Nein | Was tun, wenn es schiefgeht? |
-| `solution.outcome.tested` | Boolean | Ja | Wurde die Lösung tatsächlich getestet? |
-| `solution.outcome.successful` | Boolean | Nein | War der Test erfolgreich? |
-| `solution.outcome.side_effects` | Array[String] | Nein | Bekannte Nebenwirkungen |
-| `solution.outcome.performance_impact` | Enum | Nein | none, minimal, moderate, significant |
-| `metadata.author` | String | Nein | Wer hat die Lösung dokumentiert? |
-| `metadata.source` | String | Nein | Woher stammt die Lösung? |
-| `metadata.reusability_score` | Float | Nein | 0.0-1.0, wie wiederverwendbar ist die Lösung? |
-| `metadata.complexity` | Enum | Nein | low, medium, high |
-| `metadata.estimated_time` | String | Nein | Geschätzte Umsetzungsdauer |
-| `metadata.required_skills` | Array[String] | Nein | Benötigte Fähigkeiten |
-| `related_solutions` | Array[String] | Nein | IDs verwandter Lösungen |
-| `tags` | Array[String] | Nein | Freie Tags für Suche |
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `schema_version` | String | Yes | Version number of JSON schema |
+| `type` | String | Yes | Always "n2k_solution" |
+| `id` | String | Yes | Unique solution ID (sol_...) |
+| `problem_ids` | Array[String] | Yes | List of all problems this solution addresses |
+| `asset_id` | String | Yes | Asset for which this solution applies |
+| `timestamp` | ISO8601 | Yes | Timestamp of solution documentation |
+| `solution.title` | String | Yes | Concise solution title |
+| `solution.type` | Enum | Yes | configuration, bugfix, workaround, update, other |
+| `solution.approach` | Enum | Yes | permanent_fix, workaround, temporary |
+| `solution.description` | String | Yes | Detailed description of solution |
+| `solution.prerequisites` | Array[String] | No | What must be present/fulfilled? |
+| `solution.steps` | Array[Object] | Yes | Step-by-step instructions (see 7.4) |
+| `solution.validation.success_criteria` | Array[String] | No | How to recognize success? |
+| `solution.validation.test_procedure` | String | No | How to test the solution? |
+| `solution.validation.rollback_plan` | String | No | What to do if it goes wrong? |
+| `solution.outcome.tested` | Boolean | Yes | Was the solution actually tested? |
+| `solution.outcome.successful` | Boolean | No | Was the test successful? |
+| `solution.outcome.side_effects` | Array[String] | No | Known side effects |
+| `solution.outcome.performance_impact` | Enum | No | none, minimal, moderate, significant |
+| `metadata.author` | String | No | Who documented the solution? |
+| `metadata.source` | String | No | Where does the solution come from? |
+| `metadata.reusability_score` | Float | No | 0.0-1.0, how reusable is the solution? |
+| `metadata.complexity` | Enum | No | low, medium, high |
+| `metadata.estimated_time` | String | No | Estimated implementation time |
+| `metadata.required_skills` | Array[String] | No | Required skills |
+| `related_solutions` | Array[String] | No | IDs of related solutions |
+| `tags` | Array[String] | No | Free tags for search |
 
-### 7.4 Step-Objekt Struktur
+### 7.4 Step Object Structure
 
 ```json
 {
   "step_number": 1,
-  "action": "Kurze Beschreibung der Aktion",
-  "details": "Ausführliche Erklärung",
-  "command": "Optional: Auszuführender Befehl",
-  "expected_result": "Was sollte passieren?",
-  "estimated_duration": "Zeitangabe",
-  "warnings": ["Optionale Warnungen"]
+  "action": "Brief description of action",
+  "details": "Detailed explanation",
+  "command": "Optional: Command to execute",
+  "expected_result": "What should happen?",
+  "estimated_duration": "Time estimate",
+  "warnings": ["Optional warnings"]
 }
 ```
 
@@ -502,8 +501,8 @@ Dokumentiert **Lösungswege** in wiederverwendbarer Form. Kann auf mehrere Probl
 
 ## 8. Asset JSON
 
-### 8.1 Zweck
-Katalogisiert **IT-Assets** (Systeme, Anwendungen, Infrastruktur). Fungiert als Bindeglied zwischen Problemen und Lösungen. Ermöglicht Asset-basierte Analysen.
+### 8.1 Purpose
+Catalogs **IT assets** (systems, applications, infrastructure). Serves as link between problems and solutions. Enables asset-based analyses.
 
 ### 8.2 Schema
 
@@ -511,13 +510,13 @@ Katalogisiert **IT-Assets** (Systeme, Anwendungen, Infrastruktur). Fungiert als 
 {
   "schema_version": "1.0.0",
   "type": "n2k_asset",
-  "id": "asset_mailsystem_eah_01",
+  "id": "asset_mailsystem_01",
   "created_at": "2025-11-15T10:00:00Z",
   "updated_at": "2025-11-15T14:20:00Z",
   "asset": {
-    "name": "EAH Mail-System",
-    "display_name": "Zentrales E-Mail-System",
-    "description": "Hochschulweites E-Mail-System für Mitarbeitende und Studierende",
+    "name": "Mail System",
+    "display_name": "Central Email System",
+    "description": "Organization-wide email system for staff and users",
     "type": "mail_infrastructure",
     "category": "communication",
     "status": "active",
@@ -536,29 +535,24 @@ Katalogisiert **IT-Assets** (Systeme, Anwendungen, Infrastruktur). Fungiert als 
     {
       "name": "LDAP",
       "purpose": "User Authentication",
-      "asset_id": "asset_ldap_eah_01"
+      "asset_id": "asset_ldap_01"
     },
     {
-      "name": "Spam-Filter",
+      "name": "Spam Filter",
       "purpose": "Mail Security",
       "asset_id": "asset_spamfilter_01"
-    },
-    {
-      "name": "Knowledge Base",
-      "purpose": "Mail Import",
-      "asset_id": "asset_n2k_kb_01"
     }
   ],
   "ownership": {
-    "department": "Servicezentrum Informatik",
-    "primary_contact": "Hentschke",
-    "email": "it-support@eah-jena.de",
+    "department": "IT Support",
+    "primary_contact": "Support Team",
+    "email": "it-support@company.com",
     "escalation_contact": null
   },
   "documentation": {
-    "wiki_url": "https://wiki.eah-jena.de/mailsystem",
+    "wiki_url": "https://wiki.company.com/mailsystem",
     "api_docs": null,
-    "runbook": "https://docs.eah-jena.de/runbooks/mail",
+    "runbook": "https://docs.company.com/runbooks/mail",
     "architecture_diagram": null
   },
   "maintenance": {
@@ -578,12 +572,12 @@ Katalogisiert **IT-Assets** (Systeme, Anwendungen, Infrastruktur). Fungiert als 
     "total_incidents": 12,
     "mean_time_to_resolve": "45 min",
     "common_issues": [
-      "Spam-Filter Fehlalarme",
-      "LDAP Sync-Probleme"
+      "Spam filter false positives",
+      "LDAP sync problems"
     ]
   },
   "related_assets": [
-    "asset_ldap_eah_01",
+    "asset_ldap_01",
     "asset_storage_mail_01",
     "asset_backup_system_01"
   ],
@@ -595,52 +589,7 @@ Katalogisiert **IT-Assets** (Systeme, Anwendungen, Infrastruktur). Fungiert als 
 }
 ```
 
-### 8.3 Schlüsselbeschreibung
-
-| Schlüssel | Typ | Pflicht | Beschreibung |
-|-----------|-----|---------|--------------|
-| `schema_version` | String | Ja | Versionsnummer des JSON-Schemas |
-| `type` | String | Ja | Immer "n2k_asset" |
-| `id` | String | Ja | Eindeutige Asset-ID (asset_...) |
-| `created_at` | ISO8601 | Ja | Wann wurde der Asset-Eintrag erstellt? |
-| `updated_at` | ISO8601 | Ja | Letzte Aktualisierung |
-| `asset.name` | String | Ja | Technischer Name (eindeutig) |
-| `asset.display_name` | String | Ja | Benutzerfreundlicher Name |
-| `asset.description` | String | Ja | Was macht dieses Asset? |
-| `asset.type` | Enum | Ja | Asset-Typ (siehe 8.4) |
-| `asset.category` | Enum | Ja | Übergeordnete Kategorie |
-| `asset.status` | Enum | Ja | active, inactive, decommissioned, planned |
-| `asset.criticality` | Enum | Ja | low, medium, high, critical |
-| `technical.software` | String | Nein | Softwarename |
-| `technical.version` | String | Nein | Versionsnummer |
-| `technical.platform` | String | Nein | Betriebssystem/Plattform |
-| `technical.architecture` | String | Nein | CPU-Architektur |
-| `technical.deployment` | Enum | Nein | on-premise, cloud, hybrid |
-| `technical.vendor` | String | Nein | Hersteller/Anbieter |
-| `technical.license` | String | Nein | Lizenzmodell |
-| `integrations` | Array[Object] | Nein | Verbundene Systeme (siehe 8.5) |
-| `ownership.department` | String | Ja | Verantwortliche Abteilung |
-| `ownership.primary_contact` | String | Ja | Hauptansprechpartner |
-| `ownership.email` | String | Ja | Kontakt-E-Mail |
-| `ownership.escalation_contact` | String | Nein | Eskalationskontakt |
-| `documentation.wiki_url` | String | Nein | Link zur Dokumentation |
-| `documentation.api_docs` | String | Nein | API-Dokumentation |
-| `documentation.runbook` | String | Nein | Betriebshandbuch |
-| `documentation.architecture_diagram` | String | Nein | Architekturdiagramm |
-| `maintenance.last_update` | Date | Nein | Letztes Update |
-| `maintenance.update_frequency` | String | Nein | Update-Rhythmus |
-| `maintenance.backup_schedule` | String | Nein | Backup-Frequenz |
-| `maintenance.monitoring` | Boolean | Nein | Wird überwacht? |
-| `maintenance.sla` | String | Nein | Service Level Agreement |
-| `knowledge.known_problems` | Array[String] | Nein | IDs bekannter Probleme |
-| `knowledge.available_solutions` | Array[String] | Nein | IDs verfügbarer Lösungen |
-| `knowledge.total_incidents` | Integer | Nein | Gesamtzahl Incidents |
-| `knowledge.mean_time_to_resolve` | String | Nein | Durchschnittliche Lösungszeit |
-| `knowledge.common_issues` | Array[String] | Nein | Häufige Probleme (Freitext) |
-| `related_assets` | Array[String] | Nein | IDs verwandter Assets |
-| `tags` | Array[String] | Nein | Freie Tags |
-
-### 8.4 Asset-Typen
+### 8.3 Asset Types
 
 ```
 Categories:
@@ -653,7 +602,7 @@ Categories:
 - storage
 - client
 
-Types (Auswahl):
+Types (Selection):
 - mail_infrastructure
 - ldap_service
 - active_directory
@@ -671,24 +620,12 @@ Types (Auswahl):
 - mobile_device
 ```
 
-### 8.5 Integration-Objekt
-
-```json
-{
-  "name": "System-Name",
-  "purpose": "Zweck der Integration",
-  "asset_id": "asset_...",
-  "interface": "API|LDAP|Database|File",
-  "status": "active|inactive"
-}
-```
-
 ---
 
 ## 9. Case JSON
 
-### 9.1 Zweck
-Orchestriert den **vollständigen Support-Case**. Verlinkt Problem, Lösung(en) und Asset. Dokumentiert den Lösungsweg inklusive Alternativen.
+### 9.1 Purpose
+Orchestrates the **complete support case**. Links problem, solution(s), and asset. Documents the resolution path including alternatives.
 
 ### 9.2 Schema
 
@@ -701,18 +638,18 @@ Orchestriert den **vollständigen Support-Case**. Verlinkt Problem, Lösung(en) 
   "created_at": "2025-11-15T10:35:57.424Z",
   "resolved_at": "2025-11-15T14:20:00Z",
   "case": {
-    "title": "Mail-System Import-Fehler",
+    "title": "Mail system import error",
     "status": "resolved",
     "priority": "high",
     "reporter": {
-      "name": "Hentschke",
-      "email": "hentschke@eah-jena.de"
+      "name": "John Smith",
+      "email": "john.smith@company.com"
     }
   },
   "mail_metadata": {
-    "subject": "Re: Mail-System Probleme",
-    "from": "hentschke@eah-jena.de",
-    "to": "it-support@eah-jena.de",
+    "subject": "Re: Mail System Problems",
+    "from": "john.smith@company.com",
+    "to": "it-support@company.com",
     "date": "2025-11-15T11:35:00Z",
     "thread_id": "thread_abc123",
     "has_attachments": false,
@@ -720,7 +657,7 @@ Orchestriert den **vollständigen Support-Case**. Verlinkt Problem, Lösung(en) 
   },
   "entities": {
     "problem_id": "prob_0cb386ae2c684a53a69e8a4a786a298e",
-    "asset_id": "asset_mailsystem_eah_01",
+    "asset_id": "asset_mailsystem_01",
     "applied_solution_id": "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0",
     "alternative_solutions": []
   },
@@ -728,47 +665,41 @@ Orchestriert den **vollständigen Support-Case**. Verlinkt Problem, Lösung(en) 
     {
       "step": 1,
       "timestamp": "2025-11-15T11:40:00Z",
-      "action": "Problem analysiert",
-      "actor": "Hentschke",
-      "notes": "SMTP-Logs zeigen Rejection wegen fehlendem KB-Import"
+      "action": "Problem analyzed",
+      "actor": "Support Staff",
+      "notes": "SMTP logs show rejection due to missing KB import"
     },
     {
       "step": 2,
       "timestamp": "2025-11-15T13:00:00Z",
-      "action": "Lösung identifiziert",
-      "actor": "Hentschke",
+      "action": "Solution identified",
+      "actor": "Support Staff",
       "solution_id": "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0",
-      "notes": "KB-Import aktivieren als Lösung gewählt"
+      "notes": "Enable KB import as solution"
     },
     {
       "step": 3,
       "timestamp": "2025-11-15T14:10:00Z",
-      "action": "Lösung implementiert",
-      "actor": "Hentschke",
+      "action": "Solution implemented",
+      "actor": "Support Staff",
       "outcome": "success"
     },
     {
       "step": 4,
       "timestamp": "2025-11-15T14:20:00Z",
-      "action": "Lösung validiert",
-      "actor": "Hentschke",
+      "action": "Solution validated",
+      "actor": "Support Staff",
       "outcome": "success",
-      "notes": "Test-Mail erfolgreich in KB importiert"
+      "notes": "Test mail successfully imported into KB"
     }
   ],
   "conversation_context": {
     "thread_messages": 3,
     "participants": [
-      "hentschke@eah-jena.de",
-      "it-support@eah-jena.de"
+      "john.smith@company.com",
+      "it-support@company.com"
     ],
-    "conversation_summary": "Mail-System lehnte Mails ab. Ursache: Fehlendes KB-Import Feature. Lösung: KB-Import aktiviert."
-  },
-  "knowledge_base_integration": {
-    "kb_article_generated": true,
-    "kb_article_id": "kb_art_001",
-    "kb_article_url": "https://kb.eah-jena.de/articles/001",
-    "indexed_at": "2025-11-15T14:30:00Z"
+    "conversation_summary": "Mail system rejected mails. Cause: Missing KB import feature. Solution: KB import enabled."
   },
   "metrics": {
     "time_to_first_response": "5 min",
@@ -784,257 +715,180 @@ Orchestriert den **vollständigen Support-Case**. Verlinkt Problem, Lösung(en) 
 }
 ```
 
-### 9.3 Schlüsselbeschreibung
-
-| Schlüssel | Typ | Pflicht | Beschreibung |
-|-----------|-----|---------|--------------|
-| `schema_version` | String | Ja | Versionsnummer des JSON-Schemas |
-| `type` | String | Ja | Immer "n2k_case" |
-| `id` | String | Ja | Eindeutige Case-ID (case_...) |
-| `mail_id` | String | Ja | Original E-Mail Message-ID |
-| `created_at` | ISO8601 | Ja | Zeitpunkt der Case-Erstellung |
-| `resolved_at` | ISO8601 | Nein | Zeitpunkt der Lösung |
-| `case.title` | String | Ja | Case-Titel (aus Mail-Subject) |
-| `case.status` | Enum | Ja | open, in_progress, resolved, closed, reopened |
-| `case.priority` | Enum | Ja | low, medium, high, critical |
-| `case.reporter` | Object | Ja | Name und E-Mail des Meldenden |
-| `mail_metadata.subject` | String | Ja | E-Mail Betreff |
-| `mail_metadata.from` | String | Ja | Absender |
-| `mail_metadata.to` | String | Ja | Empfänger |
-| `mail_metadata.date` | ISO8601 | Ja | E-Mail Datum |
-| `mail_metadata.thread_id` | String | Nein | Thread-ID (bei Konversationen) |
-| `mail_metadata.has_attachments` | Boolean | Ja | Anhänge vorhanden? |
-| `mail_metadata.attachments` | Array[Object] | Nein | Liste der Anhänge (siehe 9.4) |
-| `entities.problem_id` | String | Ja | Referenz zum Problem |
-| `entities.asset_id` | String | Ja | Referenz zum Asset |
-| `entities.applied_solution_id` | String | Nein | Welche Lösung wurde verwendet? |
-| `entities.alternative_solutions` | Array[String] | Nein | Andere mögliche Lösungen |
-| `resolution_path` | Array[Object] | Nein | Chronologischer Lösungsweg (siehe 9.5) |
-| `conversation_context.thread_messages` | Integer | Nein | Anzahl Nachrichten im Thread |
-| `conversation_context.participants` | Array[String] | Nein | Beteiligte E-Mail-Adressen |
-| `conversation_context.conversation_summary` | String | Nein | KI-generierte Zusammenfassung |
-| `knowledge_base_integration.kb_article_generated` | Boolean | Nein | KB-Artikel erstellt? |
-| `knowledge_base_integration.kb_article_id` | String | Nein | ID des KB-Artikels |
-| `knowledge_base_integration.kb_article_url` | String | Nein | URL zum KB-Artikel |
-| `knowledge_base_integration.indexed_at` | ISO8601 | Nein | Zeitpunkt der Indizierung |
-| `metrics.time_to_first_response` | String | Nein | Reaktionszeit |
-| `metrics.time_to_resolution` | String | Nein | Gesamtlösungszeit |
-| `metrics.reopened` | Boolean | Nein | Wurde Case wiedereröffnet? |
-| `metrics.satisfaction_score` | Float | Nein | 1.0-5.0, falls erfasst |
-| `tags` | Array[String] | Nein | Freie Tags |
-
-### 9.4 Attachment-Objekt
-
-```json
-{
-  "filename": "error_screenshot.png",
-  "type": "image/png",
-  "size_bytes": 2458624,
-  "storage_path": "/attachments/2025/11/error_screenshot_abc123.png",
-  "storage_url": "https://storage.eah-jena.de/n2k/attachments/...",
-  "extracted_text": "SMTP Error 550: Mailbox unavailable",
-  "ocr_applied": true,
-  "processing_status": "indexed"
-}
-```
-
-### 9.5 Resolution Path Step-Objekt
-
-```json
-{
-  "step": 1,
-  "timestamp": "2025-11-15T11:40:00Z",
-  "action": "Problem analysiert|Lösung getestet|...",
-  "actor": "Name der Person",
-  "solution_id": "sol_...",
-  "outcome": "success|failed|partial",
-  "notes": "Freitext-Notizen"
-}
-```
-
 ---
 
-## 10. ID-Konventionen
+## 10. ID Conventions
 
-### 10.1 ID-Format
+### 10.1 ID Format
 
-Alle IDs folgen dem Schema: `{type}_{uuid}`
+All IDs follow the schema: `{type}_{uuid}`
 
-| Typ | Präfix | Beispiel |
-|-----|--------|----------|
+| Type | Prefix | Example |
+|------|--------|----------|
 | Problem | `prob_` | `prob_0cb386ae2c684a53a69e8a4a786a298e` |
 | Solution | `sol_` | `sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0` |
-| Asset | `asset_` | `asset_mailsystem_eah_01` |
+| Asset | `asset_` | `asset_mailsystem_01` |
 | Case | `case_` | `case_0cb386ae2c684a53a69e8a4a786a298e` |
 | KB Article | `kb_art_` | `kb_art_001` |
 
-### 10.2 ID-Generierung
+### 10.2 ID Generation
 
-- **Problem/Case**: Verwenden die E-Mail Message-ID (ohne Sonderzeichen)
+- **Problem/Case**: Use email Message-ID (without special characters)
 - **Solution**: UUID v4
-- **Asset**: Manuell vergeben (sprechend) oder UUID bei automatischer Erstellung
+- **Asset**: Manually assigned (speaking) or UUID for automatic creation
 
 ---
 
-## 11. Datenbank-Schema (Empfehlung)
+## 11. Database Schema
 
-### 11.1 MongoDB Collections
+### 11.1 PostgreSQL Tables
 
-```javascript
-// Collection: problems
-{
-  _id: ObjectId,
-  problem_id: "prob_...",  // Indexed, Unique
-  mail_id: "...",  // Indexed
-  asset_id: "...",  // Indexed
-  // ... rest of Problem JSON
-  _metadata: {
-    created_at: ISODate,
-    updated_at: ISODate,
-    version: 1
-  }
-}
+```sql
+-- Collection: problems
+CREATE TABLE problems (
+    id SERIAL PRIMARY KEY,
+    problem_id VARCHAR(100) UNIQUE NOT NULL,
+    mail_id VARCHAR(100) NOT NULL,
+    asset_id VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-// Collection: solutions
-{
-  _id: ObjectId,
-  solution_id: "sol_...",  // Indexed, Unique
-  problem_ids: ["prob_..."],  // Indexed (Array)
-  asset_id: "...",  // Indexed
-  // ... rest of Solution JSON
-  _metadata: { ... }
-}
+CREATE INDEX idx_problems_asset ON problems(asset_id);
+CREATE INDEX idx_problems_mail ON problems(mail_id);
+CREATE INDEX idx_problems_status ON problems((data->>'status'));
+CREATE INDEX idx_problems_fulltext ON problems 
+    USING GIN(to_tsvector('english', data->>'problem'));
 
-// Collection: assets
-{
-  _id: ObjectId,
-  asset_id: "asset_...",  // Indexed, Unique
-  asset_name: "...",  // Indexed, Unique
-  asset_type: "...",  // Indexed
-  // ... rest of Asset JSON
-  _metadata: { ... }
-}
+-- Collection: solutions
+CREATE TABLE solutions (
+    id SERIAL PRIMARY KEY,
+    solution_id VARCHAR(100) UNIQUE NOT NULL,
+    asset_id VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
-// Collection: cases
-{
-  _id: ObjectId,
-  case_id: "case_...",  // Indexed, Unique
-  mail_id: "...",  // Indexed
-  problem_id: "...",  // Indexed
-  asset_id: "...",  // Indexed
-  applied_solution_id: "...",  // Indexed
-  // ... rest of Case JSON
-  _metadata: { ... }
-}
-```
+CREATE INDEX idx_solutions_asset ON solutions(asset_id);
+CREATE INDEX idx_solutions_reusability ON solutions(
+    (data->'metadata'->>'reusability_score')
+);
 
-### 11.2 Wichtige Indizes
+-- Collection: assets
+CREATE TABLE assets (
+    id SERIAL PRIMARY KEY,
+    asset_id VARCHAR(100) UNIQUE NOT NULL,
+    asset_name VARCHAR(255) UNIQUE NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-```javascript
-// Full-Text Search
-db.problems.createIndex({
-  "problem.title": "text",
-  "problem.description": "text",
-  "problem.symptoms": "text"
-});
+CREATE INDEX idx_assets_type ON assets((data->'asset'->>'type'));
+CREATE INDEX idx_assets_status ON assets((data->'asset'->>'status'));
 
-db.solutions.createIndex({
-  "solution.title": "text",
-  "solution.description": "text",
-  "tags": "text"
-});
+-- Collection: cases
+CREATE TABLE cases (
+    id SERIAL PRIMARY KEY,
+    case_id VARCHAR(100) UNIQUE NOT NULL,
+    mail_id VARCHAR(100) NOT NULL,
+    problem_id VARCHAR(100) REFERENCES problems(problem_id),
+    asset_id VARCHAR(100) REFERENCES assets(asset_id),
+    applied_solution_id VARCHAR(100),
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    resolved_at TIMESTAMP
+);
 
-// Performance Indizes
-db.problems.createIndex({ "asset_id": 1, "status": 1 });
-db.solutions.createIndex({ "asset_id": 1, "metadata.reusability_score": -1 });
-db.cases.createIndex({ "created_at": -1 });
-db.assets.createIndex({ "asset.type": 1, "asset.status": 1 });
+CREATE INDEX idx_cases_mail ON cases(mail_id);
+CREATE INDEX idx_cases_status ON cases((data->'case'->>'status'));
 ```
 
 ---
 
-## 12. Workflow & Prozesse
+## 12. Workflow & Processes
 
-### 12.1 Standard-Workflow
+### 12.1 Standard Workflow
 
 ```
-1. E-Mail trifft ein
+1. Email arrives
    ↓
-2. Mail-Parser extrahiert Daten
+2. Mail parser extracts data
    ↓
-3. Queue: Neuer Job für LLM-Worker
+3. Queue: New job for OLLAMA worker
    ↓
-4. LLM-Worker analysiert E-Mail
-   ├── Identifiziert Problem
-   ├── Identifiziert Lösung (falls vorhanden)
-   └── Identifiziert/Erstellt Asset
+4. OLLAMA worker analyzes email
+   ├── Identifies problem
+   ├── Identifies solution (if present)
+   └── Identifies/Creates asset
    ↓
-5. JSON-Generator erstellt 3-4 JSONs
+5. JSON generator creates 3-4 JSONs
    ↓
-6. Validierung (Schema-Check)
+6. Validation (schema check)
    ↓
-7. Speicherung in Datenbank
-   ├── Problem → problems collection
-   ├── Solution → solutions collection
-   ├── Asset → assets collection (upsert)
-   └── Case → cases collection
+7. Storage in database
+   ├── Problem → problems table
+   ├── Solution → solutions table
+   ├── Asset → assets table (upsert)
+   └── Case → cases table
    ↓
-8. Update Cross-References
+8. Update cross-references
    ├── Asset.known_problems += problem_id
    └── Asset.available_solutions += solution_id
    ↓
-9. Optional: KB-Artikel generieren
+9. Optional: Generate KB article
    ↓
-10. Fertig ✓
+10. Done ✓
 ```
 
-### 12.2 Sonderfälle
+### 12.2 Special Cases
 
-#### Fall 1: E-Mail ohne Lösung
+#### Case 1: Email without solution
 ```
-Problem wird erfasst, aber:
+Problem is recorded, but:
 - entities.applied_solution_id = null
 - case.status = "open"
-- Kein Solution-JSON erstellt
+- No Solution JSON created
 ```
 
-#### Fall 2: Mehrere Lösungsversuche
+#### Case 2: Multiple solution attempts
 ```
-- Mehrere Solution-JSONs (sol_1, sol_2, sol_3)
-- resolution_path dokumentiert alle Versuche
-- entities.applied_solution_id = erfolgreichste Lösung
-- entities.alternative_solutions = [andere]
+- Multiple Solution JSONs (sol_1, sol_2, sol_3)
+- resolution_path documents all attempts
+- entities.applied_solution_id = most successful solution
+- entities.alternative_solutions = [others]
 ```
 
-#### Fall 3: Neues Asset
+#### Case 3: New asset
 ```
-- Asset wird automatisch erstellt
-- Minimale Daten (Name, Type aus LLM-Analyse)
-- ownership.department = "Unknown" → Manuelles Review
+- Asset is automatically created
+- Minimal data (name, type from OLLAMA analysis)
+- ownership.department = "Unknown" → Manual review
 - asset.status = "pending_verification"
 ```
 
-#### Fall 4: E-Mail mit Anhängen
+#### Case 4: Email with attachments
 ```
-- Anhänge werden in Object Storage gespeichert
-- OCR/Text-Extraktion läuft asynchron
-- mail_metadata.attachments wird befüllt
-- Extracted Text → problem.error_messages (falls relevant)
+- Attachments stored in object storage
+- OCR/text extraction runs asynchronously
+- mail_metadata.attachments populated
+- Extracted text → problem.error_messages (if relevant)
 ```
 
 ---
 
-## 13. API-Endpunkte (Vorschlag)
+## 13. API Endpoints
 
 ### 13.1 REST API
 
 ```
 # Problems
-GET    /api/v1/problems              # Liste aller Probleme
-GET    /api/v1/problems/{id}         # Spezifisches Problem
-POST   /api/v1/problems              # Neues Problem anlegen
-PUT    /api/v1/problems/{id}         # Problem aktualisieren
-DELETE /api/v1/problems/{id}         # Problem löschen
+GET    /api/v1/problems              # List all problems
+GET    /api/v1/problems/{id}         # Specific problem
+POST   /api/v1/problems              # Create new problem
+PUT    /api/v1/problems/{id}         # Update problem
+DELETE /api/v1/problems/{id}         # Delete problem
 
 # Solutions
 GET    /api/v1/solutions
@@ -1059,164 +913,137 @@ DELETE /api/v1/cases/{id}
 
 # Search
 GET    /api/v1/search?q={query}&type={problem|solution|asset}
-GET    /api/v1/search/advanced       # Faceted Search
+GET    /api/v1/search/advanced       # Faceted search
 
 # Analytics
-GET    /api/v1/analytics/assets/{id}/problems     # Alle Probleme eines Assets
-GET    /api/v1/analytics/assets/{id}/solutions    # Alle Lösungen eines Assets
-GET    /api/v1/analytics/trends                   # Trend-Analysen
-```
-
-### 13.2 Query-Parameter
-
-```
-# Pagination
-?page=1&limit=20
-
-# Filtering
-?asset_id=asset_mailsystem_eah_01
-?status=open
-?severity=high
-?category=email
-
-# Sorting
-?sort_by=created_at&order=desc
-
-# Full-Text Search
-?q=mail+nicht+zugestellt
+GET    /api/v1/analytics/assets/{id}/problems     # All problems of an asset
+GET    /api/v1/analytics/assets/{id}/solutions    # All solutions of an asset
+GET    /api/v1/analytics/trends                   # Trend analyses
 ```
 
 ---
 
-## 14. Meilensteine & Zeitplan
+## 14. Milestones & Timeline
 
-### Phase 1: Proof of Concept (4 Wochen)
-- **Woche 1-2**: Setup Infrastruktur
-  - Mail-Fetcher implementieren
-  - LLM-Integration (Claude API)
-  - Basis-JSON-Generator
-- **Woche 3**: Datenbank-Schema
-  - MongoDB Setup
-  - Collection-Design
-  - Indizes erstellen
-- **Woche 4**: Testing & Iteration
-  - 10 Test-E-Mails verarbeiten
-  - JSON-Qualität evaluieren
-  - Schema-Anpassungen
+### Phase 1: Proof of Concept (4 weeks)
+- **Week 1-2**: Infrastructure setup
+  - Mail fetcher implementation
+  - OLLAMA integration
+  - Basic JSON generator
+- **Week 3**: Database schema
+  - PostgreSQL setup
+  - Table design
+  - Create indexes
+- **Week 4**: Testing & iteration
+  - Process 10 test emails
+  - Evaluate JSON quality
+  - Schema adjustments
 
-### Phase 2: MVP (8 Wochen)
-- **Woche 5-6**: Vollständiger Workflow
-  - Queue-System
-  - Worker-Pool
-  - Error-Handling
-- **Woche 7-8**: Anhang-Verarbeitung
-  - OCR-Integration
-  - Storage-System
-  - PDF-Extraktion
-- **Woche 9-10**: API-Entwicklung
-  - REST Endpoints
-  - Authentifizierung
-  - Dokumentation (OpenAPI)
-- **Woche 11-12**: Testing & Optimierung
-  - 100+ E-Mails verarbeiten
-  - Performance-Tuning
-  - Bug-Fixes
+### Phase 2: MVP (8 weeks)
+- **Week 5-6**: Complete workflow
+  - Queue system
+  - Worker pool
+  - Error handling
+- **Week 7-8**: Attachment processing
+  - OCR integration
+  - Storage system
+  - PDF extraction
+- **Week 9-10**: API development
+  - REST endpoints
+  - Authentication
+  - Documentation (OpenAPI)
+- **Week 11-12**: Testing & optimization
+  - Process 100+ emails
+  - Performance tuning
+  - Bug fixes
 
-### Phase 3: Production (4 Wochen)
-- **Woche 13**: Produktiv-Deployment
-- **Woche 14-15**: Monitoring & Finetuning
-- **Woche 16**: Dokumentation & Training
-
----
-
-## 15. Risiken & Mitigationen
-
-| Risiko | Wahrscheinlichkeit | Impact | Mitigation |
-|--------|-------------------|--------|------------|
-| LLM extrahiert falsche Daten | Mittel | Hoch | Human-Review-Flag bei niedriger Confidence |
-| Schema-Änderungen brechen Kompatibilität | Niedrig | Hoch | Versionierung, Migration-Scripts |
-| E-Mail-Attachments zu groß | Mittel | Mittel | Size-Limit, Compression |
-| Datenschutz-Bedenken | Mittel | Hoch | Anonymisierung personenbezogener Daten |
-| LLM-API-Kosten zu hoch | Niedrig | Mittel | Batching, Caching, Rate-Limiting |
+### Phase 3: Production (4 weeks)
+- **Week 13**: Production deployment
+- **Week 14-15**: Monitoring & fine-tuning
+- **Week 16**: Documentation & training
 
 ---
 
-## 16. Erfolgsmetriken
+## 15. Risks & Mitigations
 
-### KPIs (nach 6 Monaten)
-- **Wissenserfassung**: >80% aller Support-E-Mails automatisch verarbeitet
-- **Zeitersparnis**: 30% Reduktion in Time-to-Resolution für wiederkehrende Probleme
-- **Wissenswiederverwendung**: 40% der Cases nutzen existierende Solutions
-- **Datenqualität**: <5% fehlerhafte Extractions (gemessen an Human-Review)
-- **User Adoption**: 70% der Support-Mitarbeitenden nutzen KB aktiv
-
----
-
-## 17. Nächste Schritte
-
-1. **Review & Approval**: Projektplan mit Stakeholdern besprechen
-2. **Technologie-Evaluation**: Claude API vs. alternative LLMs
-3. **Ressourcen-Planung**: Entwickler, Server, Budget
-4. **Proof of Concept**: Erste 10 E-Mails manuell verarbeiten
-5. **Iteratives Refinement**: JSON-Schema basierend auf Realität anpassen
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|------------|
+| OLLAMA extracts incorrect data | Medium | High | Human review flag for low confidence |
+| Schema changes break compatibility | Low | High | Versioning, migration scripts |
+| Email attachments too large | Medium | Medium | Size limit, compression |
+| Data privacy concerns | Medium | High | Anonymization of personal data |
+| OLLAMA performance issues | Medium | Medium | Model optimization, hardware upgrade |
 
 ---
 
-## Anhang A: Beispiel-Datenfluss
+## 16. Success Metrics
 
-### Input: Support-E-Mail
+### KPIs (after 6 months)
+- **Knowledge capture**: >80% of all support emails automatically processed
+- **Time savings**: 30% reduction in time-to-resolution for recurring problems
+- **Knowledge reuse**: 40% of cases use existing solutions
+- **Data quality**: <5% extraction errors (measured by human review)
+- **User adoption**: 70% of support staff actively use KB
+
+---
+
+## 17. Next Steps
+
+1. **Review & approval**: Discuss project plan with stakeholders
+2. **Technology evaluation**: Test OLLAMA model quality
+3. **Resource planning**: Developers, servers, budget
+4. **Proof of concept**: Manually process first 10 emails
+5. **Iterative refinement**: Adjust JSON schema based on reality
+
+---
+
+## Appendix A: Example Data Flow
+
+### Input: Support Email
 ```
-From: hentschke@eah-jena.de
-To: it-support@eah-jena.de
-Subject: Mail-System nimmt keine Mails an
-Date: 15.11.2025, 11:35
+From: john.smith@company.com
+To: support@company.com
+Subject: Mail system not accepting mails
+Date: November 15, 2025, 11:35 AM
 
-Hallo Team,
+Hello team,
 
-unser Mail-System lehnt eingehende E-Mails ab. 
-Absender erhalten Bounce-Messages mit "SMTP 550".
-Das lokale Spammodell scheint involviert zu sein.
+Our mail system is rejecting incoming emails.
+Senders receive bounce messages with "SMTP 550".
+The local spam model seems to be involved.
 
-Vorschlag: Knowledge-Base-Import aktivieren, damit 
-solche Cases automatisch erfasst werden.
+Suggestion: Enable knowledge base import so that
+such cases are automatically captured.
 
-Gruß,
-Hentschke
+Regards,
+John
 ```
 
-### Output: 4 JSON-Dateien
+### Output: 4 JSON Files
 
 1. **prob_0cb386ae...json** (Problem)
 2. **sol_a7b9c3d4...json** (Solution)
-3. **asset_mailsystem_eah_01.json** (Asset, ggf. Update)
+3. **asset_mailsystem_01.json** (Asset, possibly update)
 4. **case_0cb386ae...json** (Case)
 
-*(Detaillierte JSONs siehe Kapitel 6-9)*
+*(Detailed JSONs see chapters 6-9)*
 
 ---
 
-## Anhang B: Glossar
+## Appendix B: Glossary
 
-- **Asset**: IT-System, Anwendung oder Infrastruktur-Komponente
-- **Case**: Ein vollständiger Support-Fall von Meldung bis Lösung
-- **LLM**: Large Language Model (KI für Text-Analyse)
-- **OCR**: Optical Character Recognition (Text aus Bildern)
-- **Reusability Score**: Bewertung, wie oft eine Lösung wiederverwendbar ist
-- **Resolution Path**: Chronologischer Ablauf der Lösungsfindung
-- **Schema Version**: Versionsnummer des JSON-Formats
+- **Asset**: IT system, application, or infrastructure component
+- **Case**: A complete support case from report to solution
+- **OLLAMA**: Local large language model framework
+- **OCR**: Optical Character Recognition (text from images)
+- **Reusability Score**: Rating of how often a solution can be reused
+- **Resolution Path**: Chronological sequence of solution finding
+- **Schema Version**: Version number of JSON format
 - **UUID**: Universally Unique Identifier
+- **JSONB**: PostgreSQL binary JSON data type
 
 ---
 
-## Anhang C: Kontakt & Verantwortlichkeiten
-
-**Projektleitung**: [Name]  
-**Technische Leitung**: [Name]  
-**Product Owner**: Servicezentrum Informatik  
-**Stakeholder**: IT-Leitung, Support-Team, Datenschutzbeauftragter
-
----
-
-**Dokumentversion**: 1.0  
-**Letztes Update**: 15.11.2025  
-**Nächstes Review**: 01.12.2025
+**Document Version**: 1.1  
+**Last Update**: November 15, 2025  
+**Next Review**: December 1, 2025
