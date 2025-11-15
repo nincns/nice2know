@@ -1,8 +1,3 @@
-# In das Projekt wechseln
-cd /opt/nice2know
-
-# Die Datei erstellen
-cat > mail_agent/utils/web_config_utils.py << 'EOF'
 #!/usr/bin/env python3
 """
 Nice2Know - Web Configuration Utilities
@@ -59,17 +54,14 @@ def get_editor_url(mail_id: str) -> str:
     Generate editor URL for a given mail_id (hex format from JSON)
     
     Args:
-        mail_id: The hex mail_id from problem.json (e.g. '575496876c3645bc8bf5f79c1696c134')
+        mail_id: The hex mail_id from problem.json
     
     Returns:
         Full URL to the editor
     """
     config = load_application_config()
     base_url = config.get('base_url', 'http://10.147.17.50/n2k')
-    
-    # Ensure no trailing slash
     base_url = base_url.rstrip('/')
-    
     return f"{base_url}/?mail_id={mail_id}"
 
 def get_confirm_url(mail_id: str) -> str:
@@ -84,10 +76,7 @@ def get_confirm_url(mail_id: str) -> str:
     """
     config = load_application_config()
     base_url = config.get('base_url', 'http://10.147.17.50/n2k')
-    
-    # Ensure no trailing slash
     base_url = base_url.rstrip('/')
-    
     return f"{base_url}/confirm.php?mail_id={mail_id}"
 
 def get_support_email() -> str:
@@ -100,7 +89,6 @@ def get_support_email() -> str:
     config = load_application_config()
     return config.get('admin', {}).get('email', 'support@nice2know.local')
 
-# For testing
 if __name__ == '__main__':
     print("Testing web_config_utils...")
     print("=" * 60)
@@ -115,11 +103,3 @@ if __name__ == '__main__':
     print(f"Editor URL: {get_editor_url(test_mail_id)}")
     print(f"Confirm URL: {get_confirm_url(test_mail_id)}")
     print(f"Support Email: {get_support_email()}")
-EOF
-
-# Testen
-cd /opt/nice2know
-python mail_agent/utils/web_config_utils.py
-
-# Dann run_send_response.py testen
-python mail_agent/run_send_response.py
