@@ -17,7 +17,7 @@ logger = get_logger()
 def load_config(config_path: str = None) -> dict:
     """Load mail agent configuration"""
     if not config_path:
-        config_path = Path(__file__).parent / 'config' / 'mail_config.json'
+        config_path = Path(__file__).parent / 'config' / 'connections' / 'mail_config.json'
     
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -33,7 +33,7 @@ def run_agent(config: dict, dry_run: bool = False):
     fetcher = IMAPFetcher(config)
     parser = MailParser()
     att_handler = AttachmentHandler(
-        file_handler, 
+        file_handler,
         config['storage']['max_attachment_size_mb']
     )
     
@@ -73,7 +73,7 @@ def run_agent(config: dict, dry_run: bool = False):
             # Save raw EML if configured
             if config['processing']['save_raw_eml'] and not dry_run:
                 file_handler.save_mail(
-                    parsed['message_id'], 
+                    parsed['message_id'],
                     raw_email
                 )
             
@@ -116,7 +116,7 @@ def main():
     try:
         config = load_config(args.config)
     except FileNotFoundError:
-        logger.error("Configuration file not found. Please create config/mail_config.json")
+        logger.error("Configuration file not found. Please create config/connections/mail_config.json")
         return 1
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON in config file: {e}")
