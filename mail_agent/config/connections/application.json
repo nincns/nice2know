@@ -2,9 +2,9 @@
   "app_name": "Nice2Know",
   "version": "1.0.0",
   "environment": "production",
-  "base_url": "https://nice2know.example.com",
+  "base_url": "https://nice2know.example.com/n2k",
   "admin": {
-    "email": "admin@example.com",
+    "email": "support@example.com",
     "enable_registration": false
   },
   "storage": {
