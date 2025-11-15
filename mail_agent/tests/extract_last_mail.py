@@ -24,7 +24,7 @@ from typing import Optional, Tuple
 # Auto-detection: Find mail_agent/ directory by walking up from script location
 # If script is in mail_agent/tests/ → finds mail_agent/
 # If script is in mail_agent/ → uses mail_agent/
-# 
+#
 # Manual override (uncomment to use):
 #   WORKING_DIR = Path("/absolute/path/to/mail_agent")
 # ============================================================================
@@ -115,10 +115,16 @@ def extract_json(mail_path: Path, json_type: str, output_dir: Path) -> Tuple[boo
         print(f"{RED}✗ Unknown JSON type: {json_type}{NC}")
         return False, None
     
-    # Generate output filename
-    mail_base = mail_path.stem.split('_', 2)[-1]  # Remove YYYYMMDD_HHMMSS prefix
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_path = output_dir / f"{timestamp}_{json_type}.json"
+    # Generate output filename using mail timestamp
+    mail_parts = mail_path.stem.split('_')
+    if len(mail_parts) >= 2:
+        # Use mail timestamp: YYYYMMDD_HHMMSS
+        mail_timestamp = f"{mail_parts[0]}_{mail_parts[1]}"
+    else:
+        # Fallback to current time
+        mail_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    output_path = output_dir / f"{mail_timestamp}_{json_type}.json"
     
     # Build command
     llm_script = WORKING_DIR / 'agents' / 'llm_request.py'

@@ -5,7 +5,7 @@
   "created_at": "2025-11-15T10:00:00Z",
   "updated_at": "2025-11-15T10:00:00Z",
   "asset": {
-    "name": "Microsoft 365 Outlook",
+    "name": null,
     "display_name": null,
     "description": null,
     "type": "mail_client",
@@ -14,7 +14,7 @@
     "criticality": "medium"
   },
   "technical": {
-    "software": null,
+    "software": "Microsoft 365 Outlook",
     "version": null,
     "platform": null,
     "architecture": null,
@@ -26,7 +26,8 @@
   "ownership": {
     "department": "Servicezentrum Informatik",
     "primary_contact": "Steve Hentschke",
-    "email": "steve@hentschke.info"
+    "email": "steve@hentschke.info",
+    "escalation_contact": null
   },
   "documentation": {
     "wiki_url": null,
@@ -39,7 +40,7 @@
     "update_frequency": null,
     "backup_schedule": null,
     "monitoring": false,
-    "sla": null
+    "Sla": null
   },
   "knowledge": {
     "known_problems": [],
@@ -50,7 +51,6 @@
   },
   "related_assets": [],
   "tags": [
-    "Microsoft Outlook",
-    "Email Client"
+    "Microsoft Outlook"
   ]
 }

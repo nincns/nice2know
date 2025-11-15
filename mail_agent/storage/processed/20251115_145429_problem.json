@@ -4,21 +4,22 @@
   "id": "problem_outlook_001",
   "mail_id": "575496876c3645bc8bf5f79c1696c134",
   "asset_id": null,
-  "timestamp": "2025-11-15T10:05:00Z",
+  "timestamp": "2025-11-15T10:02:00Z",
   "reporter": {
     "name": "Steve Hentschke",
-    "email": "steve@hentschke.info"
+    "email": "steve@hentschke.info",
+    "department": "IT Department"
   },
   "problem": {
-    "title": "Outlook Senden-Button fehlt (minimiert)",
-    "description": "The 'Senden'-button is missing in Outlook.",
+    "title": "Outlook Menüband/Senden-Button fehlt",
+    "description": "The Send button is missing in Outlook, preventing normal workflow.",
     "symptoms": [
-      "Menüband (Ribbon) im Nachrichtenfenster leer",
-      "Pfeil-Symbol unten rechts im Fenster"
+      "Senden-Button nicht sichtbar"
     ],
     "error_messages": [],
     "affected_functionality": [
-      "Sending emails via Outlook"
+      "Main feature access",
+      "User workflow"
     ]
   },
   "classification": {
@@ -28,5 +29,12 @@
     "priority": "normal",
     "affected_users": "single user",
     "business_impact": "low"
-  }
+  },
+  "context": {
+    "time_of_occurrence": "2025-11-15T09:15:00Z",
+    "frequency": null,
+    "environment": "production",
+    "related_changes": []
+  },
+  "status": "new"
 }
