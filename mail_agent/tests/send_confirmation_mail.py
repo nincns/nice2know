@@ -32,7 +32,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
-from utils.credentials import get_credentials
 from utils.analyze_json_quality import analyze_quality, get_field_status
 
 # Colors
@@ -41,6 +40,27 @@ RED = '\033[0;31m'
 YELLOW = '\033[1;33m'
 BLUE = '\033[0;34m'
 NC = '\033[0m'
+
+def load_mail_config() -> tuple[Dict, Dict]:
+    """Load mail configuration and secrets"""
+    config_dir = WORKING_DIR / 'config'
+    
+    mail_config_path = config_dir / 'connections' / 'mail_config.json'
+    secrets_path = config_dir / 'secrets.json'
+    
+    if not mail_config_path.exists():
+        raise FileNotFoundError(f"mail_config.json not found at {mail_config_path}")
+    
+    if not secrets_path.exists():
+        raise FileNotFoundError(f"secrets.json not found at {secrets_path}")
+    
+    with open(mail_config_path, 'r') as f:
+        mail_config = json.load(f)
+    
+    with open(secrets_path, 'r') as f:
+        secrets = json.load(f)
+    
+    return mail_config, secrets
 
 def load_json_file(filepath: Path) -> Optional[Dict]:
     try:
@@ -391,13 +411,24 @@ def fill_template_v2(template: str, problem: Dict, solution: Dict, asset: Dict,
     
     return template
 
-def send_mail(recipient: str, subject: str, html_body: str) -> bool:
+def send_mail(recipient: str, subject: str, html_body: str, mail_config: Dict, secrets: Dict) -> bool:
+    """Send email using SMTP configuration"""
     try:
-        creds = get_credentials()
-        smtp_config = creds.get_smtp_credentials()
+        smtp_config = mail_config.get('smtp', {})
+        mail_secrets = secrets.get('mail', {})
         
+        # Get SMTP settings
+        smtp_host = smtp_config.get('host', 'localhost')
+        smtp_port = smtp_config.get('port', 587)
+        smtp_user = mail_secrets.get('smtp_username', '')
+        smtp_password = mail_secrets.get('smtp_password', '')
+        from_address = smtp_config.get('from_address', smtp_user)
+        from_name = smtp_config.get('from_name', 'Nice2Know System')
+        use_starttls = smtp_config.get('use_starttls', True)
+        
+        # Build message
         msg = MIMEMultipart('alternative')
-        msg['From'] = smtp_config.get('username', 'noreply@example.com')
+        msg['From'] = f"{from_name} <{from_address}>"
         msg['To'] = recipient
         msg['Subject'] = f"Re: {subject}"
         
@@ -408,15 +439,11 @@ def send_mail(recipient: str, subject: str, html_body: str) -> bool:
         msg.attach(part1)
         msg.attach(part2)
         
-        smtp_server = smtp_config.get('host', 'localhost')
-        smtp_port = smtp_config.get('port', 587)
-        smtp_user = smtp_config.get('username')
-        smtp_password = smtp_config.get('password')
+        print(f"[SMTP] Connecting to {smtp_host}:{smtp_port}...")
         
-        print(f"[SMTP] Connecting to {smtp_server}:{smtp_port}...")
-        
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            if use_starttls:
+                server.starttls()
             if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)
             server.send_message(msg)
@@ -424,6 +451,8 @@ def send_mail(recipient: str, subject: str, html_body: str) -> bool:
         return True
     except Exception as e:
         print(f"{RED}✗ Failed to send mail: {e}{NC}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():
@@ -431,6 +460,15 @@ def main():
     print(f"{BLUE}Nice2Know - Send Confirmation Mail v2{NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Working directory: {WORKING_DIR}\n")
+    
+    # Load mail configuration
+    try:
+        print("Loading mail configuration...")
+        mail_config, secrets = load_mail_config()
+        print(f"{GREEN}✓ Mail configuration loaded{NC}\n")
+    except Exception as e:
+        print(f"{RED}✗ Failed to load mail configuration: {e}{NC}")
+        sys.exit(1)
     
     processed_dir = WORKING_DIR / 'storage' / 'processed'
     if not processed_dir.exists():
@@ -504,7 +542,7 @@ def main():
     
     # Send mail
     print(f"Sending mail to {mail_info['sender']}...")
-    success = send_mail(mail_info['sender'], mail_info['subject'], html_body)
+    success = send_mail(mail_info['sender'], mail_info['subject'], html_body, mail_config, secrets)
     
     if success:
         print(f"\n{GREEN}✓ Mail sent successfully!{NC}")
