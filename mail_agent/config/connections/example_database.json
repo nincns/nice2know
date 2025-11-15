@@ -1,7 +1,7 @@
-//
-//  Untitled.swift
-//  
-//
-//  Created by Steve Hentschke on 15.11.25.
-//
-
+{
+  "host": "localhost",
+  "port": 5432,
+  "database": "nice2know",
+  "pool_size": 10,
+  "ssl_mode": "prefer"
+}
