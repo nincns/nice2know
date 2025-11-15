@@ -1,3 +1,4 @@
+sudo tee /opt/nice2know/www/config.php > /dev/null << 'EOF'
 <?php
 /**
  * Nice2Know - Web Editor Configuration
@@ -37,16 +38,14 @@ define('APP_VERSION', '1.0.0');
 define('DEBUG_MODE', true); // Set to false in production
 
 // Web server settings
-// TODO: Set this to your actual domain/URL
-define('BASE_URL', 'https://nice2know.example.com/n2k-editor');
-define('EDITOR_PATH', '/'); // Relative path from BASE_URL
+define('BASE_URL', 'http://10.147.17.50/n2k');
+define('EDITOR_PATH', '/');
 
 // API settings
 define('API_RESPONSE_TYPE', 'application/json');
 define('ALLOWED_ORIGINS', '*'); // TODO: Restrict in production
 
 // File settings
-// JSON_PRETTY_PRINT is already a PHP constant, don't redefine
 define('JSON_OPTIONS', JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Verify critical directories exist
@@ -102,11 +101,16 @@ function send_success($data = null, $message = null) {
 
 // Helper function: Validate mail_id format
 function validate_mail_id($mail_id) {
-    // Format: YYYYMMDD_HHMMSS
-    if (!preg_match('/^\d{8}_\d{6}$/', $mail_id)) {
-        return false;
+    // Accept both formats:
+    // 1. Timestamp format: YYYYMMDD_HHMMSS (legacy)
+    // 2. Hex mail ID: 32 hex characters (from JSON)
+    if (preg_match('/^\d{8}_\d{6}$/', $mail_id)) {
+        return true; // Timestamp format
     }
-    return true;
+    if (preg_match('/^[a-f0-9]{32}$/', $mail_id)) {
+        return true; // Hex mail ID
+    }
+    return false;
 }
 
 // Helper function: Sanitize mail_id (prevent path traversal)
@@ -124,8 +128,31 @@ function get_editor_url($mail_id) {
 // Helper function: Generate confirmation URL for a given mail_id
 function get_confirm_url($mail_id) {
     $sanitized_id = sanitize_mail_id($mail_id);
-    // TODO: Implement confirmation endpoint
     return BASE_URL . '/confirm.php?mail_id=' . urlencode($sanitized_id);
+}
+
+// Helper function: Find timestamp from hex mail_id by searching JSON files
+function find_timestamp_from_mail_id($mail_id) {
+    // If it's already a timestamp, return it
+    if (preg_match('/^\d{8}_\d{6}$/', $mail_id)) {
+        return $mail_id;
+    }
+    
+    // Search for the mail_id in problem.json files
+    $files = glob(PROCESSED_DIR . '/*_problem.json');
+    
+    foreach ($files as $file) {
+        $content = file_get_contents($file);
+        $data = json_decode($content, true);
+        
+        if (isset($data['mail_id']) && $data['mail_id'] === $mail_id) {
+            // Extract timestamp from filename
+            $basename = basename($file, '_problem.json');
+            return $basename;
+        }
+    }
+    
+    return null; // Not found
 }
 
 // Log function for debugging
@@ -153,3 +180,15 @@ if (DEBUG_MODE) {
     }
 }
 ?>
+EOF
+
+# Berechtigungen setzen
+sudo chown www-data:www-data /opt/nice2know/www/config.php
+sudo chmod 644 /opt/nice2know/www/config.php
+
+# Testen
+php -r "
+require '/opt/nice2know/www/config.php';
+echo 'Valid timestamp: ' . (validate_mail_id('20251115_222216') ? 'YES' : 'NO') . PHP_EOL;
+echo 'Valid hex: ' . (validate_mail_id('575496876c3645bc8bf5f79c1696c134') ? 'YES' : 'NO') . PHP_EOL;
+"
