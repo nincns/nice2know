@@ -38,7 +38,7 @@
 │  ┌──────────────┐         ┌──────────────────┐              │
 │  │ IMAP Fetcher │────────▶│  Mail Parser     │              │
 │  │              │         │  - Headers       │              │
-│  │ ✅ Fertig   │         │  - Body          │              │
+│  │ ✅ Fertig    │         │  - Body          │              │
 │  └──────────────┘         │  - Attachments   │              │
 │                           │  ✅ Fertig       │              │
 │                           └────────┬─────────┘              │
