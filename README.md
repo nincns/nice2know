@@ -41,69 +41,68 @@
 
 ## 🏗️ Systemarchitektur (Aktuell)
 
-flowchart TD
-    A[Test] --> B[Rendering]
-
-flowchart TD
-
-    IMAP["IMAP Mailbox"] -->|IMAP/SSL| FETCHER
-
-    subgraph FETCHER["Mail Fetcher"]
-        F_PATH["mail_agent/agents/imap_fetcher.py"]
-        F1[IMAP Connect]
-        F2[Fetch Unseen]
-    end
-
-    FETCHER --> PARSER
-
-    subgraph PARSER["Mail Parser"]
-        P_PATH["mail_agent/agents/mail_parser.py"]
-        P1[Headers]
-        P2[Body (Text)]
-        P3[Attachments]
-    end
-
-    PARSER --> ATTACH
-
-    subgraph ATTACH["Attachment Store"]
-        A_PATH["mail_agent/agents/attachment_handler.py"]
-        A1[/images/]
-        A2[/documents/]
-        A3[/logs/]
-    end
-
-    ATTACH --> LLM
-
-    subgraph LLM["OLLAMA LLM Engine"]
-        L_PATH["mail_agent/agents/llm_request.py"]
-
-        subgraph PROMPTS["Prompts"]
-            PR1[extract_problem.txt]
-            PR2[extract_solution.txt]
-            PR3[extract_asset.txt]
-        end
-
-        subgraph SCHEMAS["Schemas"]
-            S1[problem_schema.json]
-            S2[solution_schema.json]
-            S3[asset_schema.json]
-        end
-    end
-
-    LLM --> JSONGEN
-
-    subgraph JSONGEN["JSON Generator"]
-        J1[Problem JSON]
-        J2[Solution JSON]
-        J3[Asset JSON]
-    end
-
-    JSONGEN --> STORAGE
-
-    subgraph STORAGE["File Storage (Staging)"]
-        ST_PATH["mail_agent/storage/processed/"]
-        ST1[Next step: PostgreSQL (Work in Progress)]
-    end
+```
+┌──────────────────┐
+│   IMAP Mailbox   │
+│                  │
+└────────┬─────────┘
+         │ (IMAP/SSL)
+         ▼
+┌──────────────────┐
+│   Mail Fetcher   │  ← mail_agent/agents/imap_fetcher.py
+│  - IMAP Connect  │
+│  - Fetch Unseen  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│   Mail Parser    │  ← mail_agent/agents/mail_parser.py
+│  - Headers       │
+│  - Body (Text)   │
+│  - Attachments   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Attachment Store │  ← mail_agent/agents/attachment_handler.py
+│  /images/        │
+│  /documents/     │
+│  /logs/          │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│       OLLAMA LLM Engine          │  ← mail_agent/agents/llm_request.py
+│                                  │
+│  Prompts:                        │
+│  ├─ extract_problem.txt          │
+│  ├─ extract_solution.txt         │
+│  └─ extract_asset.txt            │
+│                                  │
+│  Schemas:                        │
+│  ├─ problem_schema.json          │
+│  ├─ solution_schema.json         │
+│  └─ asset_schema.json            │
+└────────┬─────────────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  JSON Generator  │
+│                  │
+│  ✓ Problem JSON  │
+│  ✓ Solution JSON │
+│  ✓ Asset JSON    │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│  File Storage    │  ← mail_agent/storage/processed/
+│  (Staging)       │
+│                  │
+│  Nächster Step:  │
+│  → PostgreSQL    │  🚧 In Vorbereitung
+└──────────────────┘
+```
 
 ---
 
@@ -118,42 +117,42 @@ flowchart TD
 ### Installation
 
 1. **Repository klonen**
-bash
+```bash
 git clone https://github.com/yourusername/nice2know.git
 cd nice2know
-
+```
 
 2. **Python Virtual Environment**
-bash
+```bash
 chmod +x setup.sh
 ./setup.sh
 source venv/bin/activate
-
+```
 
 3. **OLLAMA-Modell installieren**
-bash
+```bash
 ollama pull llama3.2:latest
 # oder alternatives Modell
-
+```
 
 4. **Konfiguration**
-bash
+```bash
 cd mail_agent
 cp config/secrets.json.example config/secrets.json
 nano config/secrets.json  # Zugangsdaten eintragen
-
+```
 
 5. **Verbindung testen**
-bash
+```bash
 python test_mail.py  # Testet IMAP + SMTP
 python agents/llm_request.py --test  # Testet OLLAMA
-
+```
 
 6. **Mail Agent starten**
-bash
+```bash
 python run_agent.py --dry-run  # Test ohne Speichern
 python run_agent.py            # Produktivbetrieb
-
+```
 
 ---
 
@@ -161,7 +160,7 @@ python run_agent.py            # Produktivbetrieb
 
 ### config/secrets.json
 
-json
+```json
 {
   "imap": {
     "username": "support@example.com",
@@ -175,11 +174,11 @@ json
     }
   }
 }
-
+```
 
 ### config/mail_config.json
 
-json
+```json
 {
   "imap": {
     "host": "mail.example.com",
@@ -198,7 +197,7 @@ json
     "max_attachment_size_mb": 50
   }
 }
-
+```
 
 ---
 
@@ -208,7 +207,7 @@ nice2know erzeugt **3 separate JSON-Strukturen** pro Support-Fall:
 
 ### 1. Problem JSON (Kompakt, suchoptimiert)
 
-json
+```json
 {
   "schema_version": "1.0.0",
   "type": "n2k_problem",
@@ -235,11 +234,11 @@ json
   },
   "status": "resolved"
 }
-
+```
 
 ### 2. Solution JSON (Detailliert, wiederverwendbar)
 
-json
+```json
 {
   "schema_version": "1.0.0",
   "type": "n2k_solution",
@@ -270,11 +269,11 @@ json
     "reusability_score": 0.8
   }
 }
-
+```
 
 ### 3. Asset JSON (IT-System-Katalog)
 
-json
+```json
 {
   "schema_version": "1.0.0",
   "type": "n2k_asset",
@@ -300,13 +299,13 @@ json
     "total_incidents": 1
   }
 }
-
+```
 
 ---
 
 ## 🔧 Workflow (Aktuell)
 
-
+```
 1. E-Mail empfangen (IMAP)
    ↓
 2. Mail parsen (Header, Body, Anhänge)
@@ -325,13 +324,13 @@ json
 7. JSON-Dateien speichern (mail_agent/storage/processed/)
    ↓
 8. [NÄCHSTER SCHRITT] PostgreSQL-Import 🚧
-
+```
 
 ---
 
 ## 📁 Projektstruktur
 
-
+```
 nice2know/
 ├── mail_agent/                      # Haupt-Modul
 │   ├── agents/                      # Kernkomponenten
@@ -378,7 +377,7 @@ nice2know/
 ├── setup.sh                         # Python-Environment-Setup
 ├── requirements.txt                 # Python-Dependencies
 └── README.md                        # Diese Datei
-
+```
 
 ---
 
@@ -386,7 +385,7 @@ nice2know/
 
 ### LLM Request (manuell)
 
-bash
+```bash
 # Problem aus E-Mail extrahieren
 python agents/llm_request.py \
   --pre_prompt catalog/prompts/extract_problem.txt \
@@ -407,11 +406,11 @@ python agents/llm_request.py \
   --mailbody storage/mails/test.eml \
   --json catalog/json_store/asset_schema.json \
   --export storage/processed/asset.json
-
+```
 
 ### Mail Agent (automatisiert)
 
-bash
+```bash
 # Dry-Run (nichts speichern)
 python run_agent.py --dry-run
 
@@ -420,7 +419,7 @@ python run_agent.py
 
 # Loop-Modus (alle 60 Sekunden)
 python run_agent.py --loop --interval 60
-
+```
 
 ---
 
@@ -434,7 +433,7 @@ Die Datenbank-Schemas sind bereits dokumentiert:
 
 ### Migration Script (geplant)
 
-python
+```python
 # Pseudo-Code für PostgreSQL-Import
 import psycopg2
 import json
@@ -454,7 +453,7 @@ def import_json_to_postgres(json_file, table_name):
         """, (data['id'], data['mail_id'], data['asset_id'], json.dumps(data)))
     
     conn.commit()
-
+```
 
 ---
 

@@ -1,750 +1,518 @@
-# nice2know - Project Plan
+# nice2know - Projektplan (Aktualisiert)
 
-**Version:** 1.1  
-**Date:** November 15, 2025  
-**Status:** Concept Phase  
+**Version:** 1.2  
+**Datum:** 15. November 2025  
+**Status:** Phase 1 (Proof of Concept) ✅ Abgeschlossen | Phase 2 (MVP) 🚧 In Arbeit
 
 ---
 
 ## 1. Executive Summary
 
-**nice2know** is an intelligent knowledge management system that automatically transforms email-based support communication into a searchable, structured knowledge base. Through AI-powered analysis using local OLLAMA models, problems, solutions, and affected IT assets are extracted and persisted in a multi-dimensional JSON structure.
+**nice2know** ist ein intelligentes Knowledge-Management-System, das E-Mail-basierten IT-Support automatisch in eine durchsuchbare, strukturierte Wissensdatenbank transformiert. Mittels lokaler OLLAMA-KI-Analyse werden Probleme, Lösungen und betroffene IT-Assets aus E-Mails extrahiert und als JSON-Dokumente persistiert.
 
-### Core Objectives
-- Automatic extraction of support knowledge from email conversations
-- Structured storage using Problem-Solution-Asset model
-- Reusability of solutions across asset categories
-- Reduction of processing times through knowledge transfer
-- Privacy-compliant local AI processing
+### Projektstatus (Stand: 15.11.2025)
 
----
+**Phase 1 (PoC) ist abgeschlossen:**
+- ✅ IMAP-Mail-Abruf implementiert
+- ✅ Mail-Parsing (Headers, Body, Attachments)
+- ✅ OLLAMA-Integration funktionsfähig
+- ✅ JSON-Generierung für Problem, Solution, Asset
+- ✅ Prompt-Engineering und Schema-Validierung
 
-## 2. Project Description
-
-### 2.1 Initial Situation
-IT support departments receive daily support requests via email. These contain valuable knowledge about:
-- Recurring problems with IT systems
-- Proven solution approaches
-- System-specific configurations
-- Error diagnostics and workarounds
-
-Currently, this knowledge is lost after ticket resolution or is only retrievable through email search.
-
-### 2.2 Project Vision
-**nice2know** transforms every support case into structured knowledge:
-
-```
-Email → AI Analysis → Structured Data → Knowledge Base → Faster Solutions
-```
-
-### 2.3 Value Proposition
-1. **For Supporters:** Fast access to proven solutions
-2. **For Assets:** Complete problem history per system
-3. **For Organization:** Identification of systemic weaknesses
-4. **For Onboarding:** New staff learn from real cases
-
-### 2.4 Scope
-
-#### In Scope
-- Email import with attachment processing
-- AI-based problem/solution extraction
-- Asset identification and cataloging
-- JSON export for database integration
-- Linking of related cases
-- Local OLLAMA integration for privacy
-
-#### Out of Scope (Phase 1)
-- Automatic ticket creation
-- Real-time chat integration
-- Predictive maintenance
-- Automated solution suggestions during ticket processing
+**Phase 2 (MVP) startet:**
+- 🚧 PostgreSQL-Integration steht an
+- 📋 Attachment-Analyse (OCR/PDF) geplant
+- 📋 REST-API in Planung
 
 ---
 
-## 3. Data Flow Model
+## 2. Architektur-Übersicht (Aktueller Stand)
 
-### 3.1 Overview
+### 2.1 Implementierte Komponenten
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    nice2know System (PoC)                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐         ┌──────────────────┐              │
+│  │ IMAP Fetcher │────────▶│  Mail Parser     │              │
+│  │              │         │  - Headers       │              │
+│  │ ✅ Fertig    │         │  - Body          │              │
+│  └──────────────┘         │  - Attachments   │              │
+│                           │  ✅ Fertig       │              │
+│                           └────────┬─────────┘              │
+│                                    │                        │
+│                                    ▼                        │
+│                           ┌──────────────────┐              │
+│                           │ Attachment Store │              │
+│                           │  /images/        │              │
+│                           │  /documents/     │              │
+│                           │  /logs/          │              │
+│                           │  ✅ Fertig       │              │
+│                           └────────┬─────────┘              │
+│                                    │                        │
+│                                    ▼                        │
+│               ┌───────────────────────────────────┐         │
+│               │      OLLAMA LLM Engine            │         │
+│               │                                   │         │
+│               │  Prompts (✅ Fertig):             │         │
+│               │  ├─ extract_problem.txt           │         │
+│               │  ├─ extract_solution.txt          │         │
+│               │  └─ extract_asset.txt             │         │
+│               │                                   │         │
+│               │  Schemas (✅ Fertig):             │         │
+│               │  ├─ problem_schema.json           │         │
+│               │  ├─ solution_schema.json          │         │
+│               │  └─ asset_schema.json             │         │
+│               └────────┬──────────────────────────┘         │
+│                        │                                    │
+│                        ▼                                    │
+│               ┌──────────────────┐                          │
+│               │  JSON Generator  │                          │
+│               │  ✅ Fertig       │                          │
+│               │                  │                          │
+│               │  • Problem JSON  │                          │
+│               │  • Solution JSON │                          │
+│               │  • Asset JSON    │                          │
+│               └────────┬─────────┘                          │
+│                        │                                    │
+│                        ▼                                    │
+│               ┌──────────────────┐                          │
+│               │  File Storage    │                          │
+│               │  (Staging)       │                          │
+│               │  ✅ Fertig       │                          │
+│               └────────┬─────────┘                          │
+│                        │                                    │
+│                        ▼                                    │
+│               ┌──────────────────┐                          │
+│               │   PostgreSQL     │                          │
+│               │   (JSONB)        │                          │
+│               │   🚧 Nächster    │                          │
+│               │      Sprint      │                          │
+│               └──────────────────┘                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Technologie-Stack (Implementiert)
+
+| Komponente | Technologie | Status | Datei |
+|------------|-------------|--------|-------|
+| Mail Fetcher | Python + IMAPlib | ✅ Fertig | `agents/imap_fetcher.py` |
+| Mail Parser | Python + email lib | ✅ Fertig | `agents/mail_parser.py` |
+| Attachment Handler | Python + FileHandler | ✅ Fertig | `agents/attachment_handler.py` |
+| **LLM Engine** | **OLLAMA (lokal)** | ✅ Fertig | `agents/llm_request.py` |
+| JSON Generator | Python + Schema-Validation | ✅ Fertig | In LLM-Integration |
+| File Storage | Filesystem (categorized) | ✅ Fertig | `storage/processed/` |
+| **Database** | **PostgreSQL + JSONB** | 🚧 Geplant | Schema dokumentiert |
+| Object Storage | Filesystem (attachments) | ✅ Fertig | `storage/attachments/` |
+
+---
+
+## 3. Datenfluss (Aktuell Implementiert)
+
+### 3.1 E-Mail-Verarbeitung (End-to-End)
 
 ```
 ┌─────────────────┐
-│   Email Box     │
-│  (IMAP/API)     │
+│  IMAP Mailbox   │
 └────────┬────────┘
-         │
+         │ [imap_fetcher.py]
          ▼
 ┌─────────────────┐
-│  Mail Parser    │
-│  - Headers      │
-│  - Body         │
-│  - Attachments  │
+│  Raw E-Mail     │
+│  (.eml Format)  │
 └────────┬────────┘
+         │ [mail_parser.py]
+         ▼
+┌──────────────────────────────┐
+│  Parsed Mail Data            │
+│  ├─ message_id               │
+│  ├─ from / to / subject      │
+│  ├─ body (plain + html)      │
+│  └─ attachments[] metadata   │
+└────────┬─────────────────────┘
+         │
+         ├──────────┬──────────────────┐
+         │          │                  │
+         ▼          ▼                  ▼
+   [Save Raw]  [Attachments]     [LLM Processing]
+    storage/   storage/           llm_request.py
+    mails/     attachments/
+                /images/
+                /documents/
+                /logs/
+```
+
+### 3.2 LLM-Verarbeitung (Kern-Pipeline)
+
+```
+Input: E-Mail Body + Metadaten
+├─ Mail-ID: abc123...
+├─ Subject: "Outlook Senden-Button fehlt"
+└─ Body: "Das Menüband ist minimiert..."
+
          │
          ▼
-┌─────────────────────────────────────┐
-│     OLLAMA Processing Engine        │
-│  ┌─────────────────────────────┐    │
-│  │  1. Problem Extraction      │    │
-│  │  2. Solution Identification │    │
-│  │  3. Asset Recognition       │    │
-│  │  4. Context Analysis        │    │
-│  └─────────────────────────────┘    │
-└────────┬────────────────────────────┘
+┌──────────────────────────────────────┐
+│  OLLAMA LLM Processing               │
+│  (3 parallele Extraktionen)          │
+│                                      │
+│  1. Problem-Extraktion               │
+│     Prompt: extract_problem.txt      │
+│     Schema: problem_schema.json      │
+│     → Output: prob_abc123.json       │
+│                                      │
+│  2. Solution-Extraktion              │
+│     Prompt: extract_solution.txt     │
+│     Schema: solution_schema.json     │
+│     → Output: sol_xyz789.json        │
+│                                      │
+│  3. Asset-Identifikation             │
+│     Prompt: extract_asset.txt        │
+│     Schema: asset_schema.json        │
+│     → Output: asset_outlook_01.json  │
+└──────────────────────────────────────┘
          │
          ▼
-┌─────────────────────────────────────┐
-│     JSON Generator                  │
-│  ┌──────────┬──────────┬─────────┐  │
-│  │ Problem  │ Solution │  Asset  │  │
-│  │   JSON   │   JSON   │  JSON   │  │
-│  └──────────┴──────────┴─────────┘  │
-│           │                         │
-│           ▼                         │
-│     ┌──────────┐                    │
-│     │   Case   │                    │
-│     │   JSON   │                    │
-│     └──────────┘                    │
-└────────┬────────────────────────────┘
+┌──────────────────────────────────────┐
+│  JSON-Validierung                    │
+│  - Schema-Konformität prüfen         │
+│  - ID-Generierung (mail_id-basiert)  │
+│  - Timestamp setzen                  │
+└────────┬─────────────────────────────┘
          │
          ▼
-┌─────────────────────────────────────┐
-│    PostgreSQL Database (JSONB)      │
-│  ┌─────────────────────────────┐    │
-│  │  - Problems Table           │    │
-│  │  - Solutions Table          │    │
-│  │  - Assets Table             │    │
-│  │  - Cases Table              │    │
-│  └─────────────────────────────┘    │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│  File Storage (Staging)              │
+│  storage/processed/                  │
+│  ├─ 20251115_145429_problem.json     │
+│  ├─ 20251115_145429_solution.json    │
+│  └─ 20251115_145429_asset.json       │
+└──────────────────────────────────────┘
+         │
+         ▼
+    [PostgreSQL Import]
+         🚧
+    Nächster Sprint
 ```
-
-### 3.2 Detailed Data Flow
-
-#### Phase 1: Email Ingestion
-```
-Input: Email (MIME Format)
-├── Headers (From, To, Subject, Date, Message-ID)
-├── Body (Plain Text / HTML)
-└── Attachments []
-    ├── Screenshots (PNG, JPG) → OCR
-    ├── Logs (TXT, LOG) → Text Extraction
-    ├── Documents (PDF, DOCX) → Text Extraction
-    └── Other → Store reference
-```
-
-#### Phase 2: OLLAMA Analysis
-```
-Input: Parsed Mail Content + Attachments
-Process:
-  1. Context Analysis (Which system? Which problem?)
-  2. Problem Extraction (Symptoms, error messages, context)
-  3. Solution Identification (Steps, outcome, validation)
-  4. Asset Mapping (Which system is affected?)
-  5. Categorization (Severity, type, reusability score)
-Output: Structured Data (Pre-JSON)
-```
-
-#### Phase 3: JSON Generation
-```
-Input: Structured Data
-Process:
-  1. Generate Problem JSON (lightweight)
-  2. Generate Solution JSON(s) (detailed, steps)
-  3. Identify/Create Asset JSON (if new)
-  4. Create Case JSON (linking)
-  5. Validation (schema check, ID consistency)
-Output: 3-4 JSON files per case
-```
-
-#### Phase 4: Persistence
-```
-Input: Validated JSONs
-Process:
-  1. Upsert Asset (if exists: update)
-  2. Insert Problem
-  3. Insert Solution(s)
-  4. Insert Case (with references)
-  5. Update Cross-References
-Output: Database Records + IDs
-```
-
-### 3.3 Attachment Processing Strategy
-
-| File Type | Processing | Storage Location | Integration |
-|----------|-------------|------------------|-------------|
-| PNG/JPG | OCR (Tesseract) | Object Storage | Text → Problem Context |
-| PDF | Text Extraction | Object Storage | Separate KB Article or Problem Annex |
-| TXT/LOG | Direct Parsing | Inline in JSON | Array in `error_messages` |
-| DOCX | Text Extraction | Object Storage | Separate KB Article |
-| Other | Metadata Only | Object Storage | Manual Review Flag |
 
 ---
 
-## 4. System Architecture
+## 4. JSON-Schema-Implementierung
 
-### 4.1 Components
+### 4.1 Übersicht der JSON-Typen
+
+| JSON-Typ | Zweck | Größe | Status |
+|----------|-------|-------|--------|
+| **Problem JSON** | Problembeschreibung | ~2-5 KB | ✅ Implementiert |
+| **Solution JSON** | Lösungsdokumentation | ~5-15 KB | ✅ Implementiert |
+| **Asset JSON** | IT-Asset-Katalog | ~3-10 KB | ✅ Implementiert |
+| **Case JSON** | Problem-Solution-Linking | ~3-7 KB | 📋 Geplant (Phase 2) |
+
+### 4.2 Prompt-Engineering (Implementiert)
+
+**Strategien für präzise Extraktion:**
+
+1. **Strukturierte System-Prompts**
+   - Klare Rollenbeschreibung ("You are a technical support analyst")
+   - Explizite Anweisungen ("Extract ONLY valid JSON")
+   - Negativbeispiele ("Do NOT include explanations")
+
+2. **Schema als Beispiel**
+   - JSON-Schema wird als Template in Prompt eingebettet
+   - LLM verwendet Schema als Vorlage
+   - Verhindert Struktur-Abweichungen
+
+3. **Post-Processing**
+   - Mail-ID-basierte ID-Generierung
+   - Timestamp-Normalisierung (ISO8601 UTC)
+   - Array-Normalisierung ([] statt [null])
+
+**Beispiel: Problem-Extraktion**
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                     nice2know System                     │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌────────────────┐        ┌──────────────────┐          │
-│  │  Mail Fetcher  │───────▶│  Queue Manager   │          │
-│  │  (IMAP/API)    │        │  (RabbitMQ)      │          │
-│  └────────────────┘        └─────────┬────────┘          │
-│                                       │                  │
-│                                       ▼                  │
-│                            ┌──────────────────┐          │
-│                            │  Worker Pool     │          │
-│                            │  - Mail Parser   │          │
-│                            │  - OLLAMA Proc   │          │
-│                            │  - JSON Gen      │          │
-│                            └─────────┬────────┘          │
-│                                      │                   │
-│                                      ▼                   │
-│  ┌──────────────────────────────────────────-──┐         │
-│  │         Storage Layer                       │         │
-│  ├──────────────────┬──────────────────────────┤         │
-│  │  JSON Files      │   PostgreSQL DB          │         │
-│  │  (Staging)       │   (JSONB Tables)         │         │
-│  └──────────────────┴──────────────────────────┘         │
-│                                                          │
-│  ┌─────────────────────────────────────────-───┐         │
-│  │         API Layer                           │         │
-│  │  - REST API (CRUD Operations)               │         │
-│  │  - Search API (Full-Text, Faceted)          │         │
-│  │  - Analytics API (Metrics, Trends)          │         │
-│  └─────────────────────────────────────────-───┘         │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
+Prompt-Struktur (extract_problem.txt):
+
+1. Rollenbeschreibung
+   "You are a technical support analyst..."
+
+2. Aufgabe
+   "TASK: Extract the technical problem from the email"
+
+3. Extraktionsrichtlinien
+   "- Identify core issue
+    - Extract symptoms
+    - Determine severity"
+
+4. JSON-Schema-Template
+   "EXPECTED JSON STRUCTURE:
+    {schema_json}"
+
+5. Antwortformat
+   "Return ONLY valid JSON. NO explanations."
 ```
-
-### 4.2 Technology Stack
-
-| Layer | Technology | Rationale |
-|-------|-------------|-----------|
-| Mail Fetcher | Python + IMAPlib | Standard, robust |
-| Queue | RabbitMQ | Reliable, open source |
-| **AI Processing** | **OLLAMA (local)** | **Privacy, no costs, no rate limits** |
-| Worker Pool | Python + Celery | Scalable, established |
-| **Database** | **PostgreSQL + JSONB** | **Relational integrity + JSON flexibility** |
-| Object Storage | MinIO / S3 | Attachments |
-| API | FastAPI (Python) | Fast, modern async support |
-| Frontend | React + TypeScript | (Optional, Phase 2) |
 
 ---
 
-## 5. JSON Data Structure
+## 5. Implementierte Features (Details)
 
-### 5.1 Overview of JSON Types
+### 5.1 IMAP Mail Fetcher
 
-nice2know uses **4 separate JSON structures** per support case:
+**Datei:** `mail_agent/agents/imap_fetcher.py`
 
-1. **Problem JSON** - Lightweight, fast search
-2. **Solution JSON** - Detailed, reusable
-3. **Asset JSON** - IT systems catalog
-4. **Case JSON** - Orchestration and linking
+**Features:**
+- ✅ IMAP/SSL-Verbindung
+- ✅ Credentials aus `secrets.json`
+- ✅ Mailbox-Auswahl (INBOX, custom)
+- ✅ Ungelesene Mails filtern
+- ✅ Limit-Parameter (z.B. 50 neueste)
+- ✅ Mark-as-read optional
+- ✅ Connection-Cleanup
 
-### 5.2 Versioning
+**Verwendung:**
+```python
+fetcher = IMAPFetcher(config)
+fetcher.connect()
+fetcher.select_mailbox('INBOX')
+messages = fetcher.fetch_messages(limit=50, unseen_only=True)
+```
 
-All JSONs use semantic versioning:
-```json
+### 5.2 Mail Parser
+
+**Datei:** `mail_agent/agents/mail_parser.py`
+
+**Features:**
+- ✅ MIME-Header-Decoding (UTF-8, Base64)
+- ✅ Message-ID-Extraktion
+- ✅ Body-Extraktion (plain + HTML)
+- ✅ Attachment-Metadata (Dateiname, Typ, Größe)
+- ✅ Encoding-Error-Handling
+- ✅ Multipart-Message-Support
+
+**Output-Struktur:**
+```python
 {
-  "schema_version": "1.0.0",
-  "type": "n2k_problem"
-}
-```
-
----
-
-## 6. Problem JSON
-
-### 6.1 Purpose
-Captures the **problem statement** from the email in compact form. Optimized for fast full-text search and categorization.
-
-### 6.2 Schema
-
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_problem",
-  "id": "prob_0cb386ae2c684a53a69e8a4a786a298e",
-  "mail_id": "0cb386ae-2c68-4a53-a69e-8a4a786a298e",
-  "asset_id": "asset_mailsystem_01",
-  "timestamp": "2025-11-15T10:35:57.424Z",
-  "reporter": {
-    "name": "John Smith",
-    "email": "john.smith@company.com",
-    "department": "IT Support"
-  },
-  "problem": {
-    "title": "Mail system not accepting incoming emails",
-    "description": "System rejects email acceptance. Senders receive bounce messages.",
-    "symptoms": [
-      "Incoming mails are rejected",
-      "Mail history missing"
-    ],
-    "error_messages": [
-      "SMTP 550 - Mailbox unavailable",
-      "Local spam model blocking delivery"
-    ],
-    "affected_functionality": [
-      "Email Reception",
-      "Mail-to-Knowledge-System Integration"
+    'message_id': 'abc123...',
+    'from': 'user@example.com',
+    'to': 'support@example.com',
+    'subject': 'Outlook Problem',
+    'date': '2025-11-15T10:35:57Z',
+    'body': {
+        'plain': '...',
+        'html': '...'
+    },
+    'attachments': [
+        {
+            'filename': 'screenshot.png',
+            'content_type': 'image/png',
+            'size': 245678,
+            'part': <email.message.Message object>
+        }
     ]
-  },
-  "classification": {
-    "category": "email",
-    "subcategory": "incoming_mail",
-    "severity": "high",
-    "priority": "quick_win",
-    "affected_users": "all",
-    "business_impact": "critical"
-  },
-  "context": {
-    "time_of_occurrence": "2025-11-15T11:35:00Z",
-    "frequency": "continuous",
-    "environment": "production",
-    "related_changes": []
-  },
-  "status": "resolved",
-  "resolution_date": "2025-11-15T14:20:00Z"
 }
 ```
 
-### 6.3 Key Descriptions
+### 5.3 Attachment Handler
 
-| Key | Type | Required | Description |
-|-----|------|----------|-------------|
-| `schema_version` | String | Yes | Version number of JSON schema |
-| `type` | String | Yes | Always "n2k_problem" |
-| `id` | String | Yes | Unique problem ID (prob_...) |
-| `mail_id` | String | Yes | Reference to original email (from Email Message-ID) |
-| `asset_id` | String | Yes | Reference to affected asset |
-| `timestamp` | ISO8601 | Yes | Timestamp of problem report |
-| `reporter.name` | String | Yes | Name of reporter |
-| `reporter.email` | String | Yes | Email of reporter |
-| `reporter.department` | String | No | Department (for statistics) |
-| `problem.title` | String | Yes | Brief, concise problem description (max 200 chars) |
-| `problem.description` | String | Yes | Detailed description |
-| `problem.symptoms` | Array[String] | Yes | List of observable symptoms |
-| `problem.error_messages` | Array[String] | No | Error messages (logs, screenshots via OCR) |
-| `problem.affected_functionality` | Array[String] | No | Which functions are affected? |
-| `classification.category` | Enum | Yes | Main category (see 6.4) |
-| `classification.subcategory` | String | No | Fine-grained category |
-| `classification.severity` | Enum | Yes | low, medium, high, critical |
-| `classification.priority` | String | No | E.g., "quick_win" from original email |
-| `classification.affected_users` | String | No | Number/group of affected users |
-| `classification.business_impact` | Enum | No | low, medium, high, critical |
-| `context.time_of_occurrence` | ISO8601 | No | When did the problem occur? |
-| `context.frequency` | Enum | No | once, intermittent, continuous |
-| `context.environment` | Enum | No | production, staging, development |
-| `context.related_changes` | Array[String] | No | Recent changes to the system |
-| `status` | Enum | Yes | open, in_progress, resolved, closed |
-| `resolution_date` | ISO8601 | No | When was the problem solved? |
+**Datei:** `mail_agent/agents/attachment_handler.py`
 
-### 6.4 Categories (Enumerations)
+**Features:**
+- ✅ Automatische Kategorisierung (images, documents, logs)
+- ✅ Größen-Limit (konfigurierbar, Standard 50MB)
+- ✅ MD5-Hash für Duplikat-Erkennung
+- ✅ Timestamp-basierte Dateinamen
+- ✅ Sichere Dateinamen (Sanitization)
 
-#### category
-```
-- email (Email Systems)
-- identity (LDAP, Active Directory, SSO)
-- network (Switches, Firewalls, VPN)
-- application (Business Apps, ERP, LMS)
-- infrastructure (Server, Storage, Backup)
-- client (Workstations, Mobile Devices)
-- security (Malware, Access Issues)
-- other
-```
-
----
-
-## 7. Solution JSON
-
-### 7.1 Purpose
-Documents **solution approaches** in reusable form. Can be applicable to multiple problems. Contains detailed step-by-step instructions.
-
-### 7.2 Schema
-
-```json
+**Kategorisierungs-Logik:**
+```python
 {
-  "schema_version": "1.0.0",
-  "type": "n2k_solution",
-  "id": "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0",
-  "problem_ids": [
-    "prob_0cb386ae2c684a53a69e8a4a786a298e"
-  ],
-  "asset_id": "asset_mailsystem_01",
-  "timestamp": "2025-11-15T14:20:00Z",
-  "solution": {
-    "title": "Enable email import to knowledge base",
-    "type": "configuration",
-    "approach": "workaround",
-    "description": "Integration of mail system with knowledge base through import function. Normal mail flow remains intact, additionally conversations are automatically imported into knowledge database.",
-    "prerequisites": [
-      "Access to mail system configuration",
-      "Knowledge base must be reachable",
-      "API token for knowledge base"
-    ],
-    "steps": [
-      {
-        "step_number": 1,
-        "action": "Configure knowledge base import API",
-        "details": "Add API endpoint /api/import/mail in mail system config",
-        "command": "echo 'KB_IMPORT_URL=https://kb.example.com/api/import/mail' >> /etc/mail/config.env",
-        "expected_result": "Config file contains new variable",
-        "estimated_duration": "2 min"
-      },
-      {
-        "step_number": 2,
-        "action": "Adjust mail routing",
-        "details": "Forward incoming mails additionally to KB import",
-        "command": null,
-        "expected_result": "Mails are duplicated (normal delivery + KB import)",
-        "estimated_duration": "5 min"
-      },
-      {
-        "step_number": 3,
-        "action": "Send test mail",
-        "details": "Send test email to system and verify KB import",
-        "command": null,
-        "expected_result": "Mail appears in both mailbox and knowledge base",
-        "estimated_duration": "3 min"
-      }
-    ],
-    "validation": {
-      "success_criteria": [
-        "Mails are delivered regularly",
-        "KB import runs automatically",
-        "No errors in mail logs"
-      ],
-      "test_procedure": "Send test mail and search in KB after 5 minutes",
-      "rollback_plan": "Remove import URL from config, restart mail service"
-    },
-    "outcome": {
-      "tested": true,
-      "successful": true,
-      "side_effects": [
-        "Additional storage consumption for KB data"
-      ],
-      "performance_impact": "minimal"
-    }
-  },
-  "metadata": {
-    "author": "Support Team",
-    "source": "Support-Case 0cb386ae",
-    "reusability_score": 0.85,
-    "complexity": "low",
-    "estimated_time": "10 min",
-    "required_skills": [
-      "Mail server administration",
-      "Basic API integration knowledge"
-    ]
-  },
-  "related_solutions": [],
-  "tags": [
-    "mail",
-    "knowledge-base",
-    "integration",
-    "quick-win"
-  ]
+    '.png, .jpg, .jpeg, .gif, .bmp, .webp': 'images',
+    '.pdf, .doc, .docx, .txt, .md, .rtf': 'documents',
+    '.log, .txt': 'logs',
+    'default': 'documents'
 }
 ```
 
-### 7.3 Key Descriptions
+### 5.4 LLM Request (OLLAMA-Integration)
 
-| Key | Type | Required | Description |
-|-----|------|----------|-------------|
-| `schema_version` | String | Yes | Version number of JSON schema |
-| `type` | String | Yes | Always "n2k_solution" |
-| `id` | String | Yes | Unique solution ID (sol_...) |
-| `problem_ids` | Array[String] | Yes | List of all problems this solution addresses |
-| `asset_id` | String | Yes | Asset for which this solution applies |
-| `timestamp` | ISO8601 | Yes | Timestamp of solution documentation |
-| `solution.title` | String | Yes | Concise solution title |
-| `solution.type` | Enum | Yes | configuration, bugfix, workaround, update, other |
-| `solution.approach` | Enum | Yes | permanent_fix, workaround, temporary |
-| `solution.description` | String | Yes | Detailed description of solution |
-| `solution.prerequisites` | Array[String] | No | What must be present/fulfilled? |
-| `solution.steps` | Array[Object] | Yes | Step-by-step instructions (see 7.4) |
-| `solution.validation.success_criteria` | Array[String] | No | How to recognize success? |
-| `solution.validation.test_procedure` | String | No | How to test the solution? |
-| `solution.validation.rollback_plan` | String | No | What to do if it goes wrong? |
-| `solution.outcome.tested` | Boolean | Yes | Was the solution actually tested? |
-| `solution.outcome.successful` | Boolean | No | Was the test successful? |
-| `solution.outcome.side_effects` | Array[String] | No | Known side effects |
-| `solution.outcome.performance_impact` | Enum | No | none, minimal, moderate, significant |
-| `metadata.author` | String | No | Who documented the solution? |
-| `metadata.source` | String | No | Where does the solution come from? |
-| `metadata.reusability_score` | Float | No | 0.0-1.0, how reusable is the solution? |
-| `metadata.complexity` | Enum | No | low, medium, high |
-| `metadata.estimated_time` | String | No | Estimated implementation time |
-| `metadata.required_skills` | Array[String] | No | Required skills |
-| `related_solutions` | Array[String] | No | IDs of related solutions |
-| `tags` | Array[String] | No | Free tags for search |
+**Datei:** `mail_agent/agents/llm_request.py`
 
-### 7.4 Step Object Structure
+**Features:**
+- ✅ OLLAMA-Connection-Test
+- ✅ Prompt-Engineering (System + User Prompt)
+- ✅ JSON-Schema-Enforcement (`format: "json"`)
+- ✅ Post-Processing (ID-Generierung, Cleanup)
+- ✅ Error-Handling (JSON-Parse-Fehler)
+- ✅ Mail-ID-basierte ID-Generierung
 
-```json
+**Verwendung:**
+```bash
+python agents/llm_request.py \
+  --pre_prompt catalog/prompts/extract_problem.txt \
+  --mailbody storage/mails/test.eml \
+  --json catalog/json_store/problem_schema.json \
+  --export storage/processed/problem.json
+```
+
+**LLM-Parameter:**
+```python
 {
-  "step_number": 1,
-  "action": "Brief description of action",
-  "details": "Detailed explanation",
-  "command": "Optional: Command to execute",
-  "expected_result": "What should happen?",
-  "estimated_duration": "Time estimate",
-  "warnings": ["Optional warnings"]
+    "model": "llama3.2:latest",
+    "temperature": 0.1,      # Deterministisch
+    "top_p": 0.9,
+    "format": "json",        # Erzwingt JSON-Output
+    "stream": False
 }
 ```
 
 ---
 
-## 8. Asset JSON
+## 6. Prompt-Katalog (Implementiert)
 
-### 8.1 Purpose
-Catalogs **IT assets** (systems, applications, infrastructure). Serves as link between problems and solutions. Enables asset-based analyses.
+### 6.1 Problem-Extraktion
 
-### 8.2 Schema
+**Datei:** `mail_agent/catalog/prompts/extract_problem.txt`
 
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_asset",
-  "id": "asset_mailsystem_01",
-  "created_at": "2025-11-15T10:00:00Z",
-  "updated_at": "2025-11-15T14:20:00Z",
-  "asset": {
-    "name": "Mail System",
-    "display_name": "Central Email System",
-    "description": "Organization-wide email system for staff and users",
-    "type": "mail_infrastructure",
-    "category": "communication",
-    "status": "active",
-    "criticality": "high"
-  },
-  "technical": {
-    "software": "Postfix",
-    "version": "3.7.2",
-    "platform": "Linux (Ubuntu 22.04 LTS)",
-    "architecture": "x86_64",
-    "deployment": "on-premise",
-    "vendor": "Open Source",
-    "license": "IBM Public License"
-  },
-  "integrations": [
-    {
-      "name": "LDAP",
-      "purpose": "User Authentication",
-      "asset_id": "asset_ldap_01"
-    },
-    {
-      "name": "Spam Filter",
-      "purpose": "Mail Security",
-      "asset_id": "asset_spamfilter_01"
-    }
-  ],
-  "ownership": {
-    "department": "IT Support",
-    "primary_contact": "Support Team",
-    "email": "it-support@company.com",
-    "escalation_contact": null
-  },
-  "documentation": {
-    "wiki_url": "https://wiki.company.com/mailsystem",
-    "api_docs": null,
-    "runbook": "https://docs.company.com/runbooks/mail",
-    "architecture_diagram": null
-  },
-  "maintenance": {
-    "last_update": "2025-10-01",
-    "update_frequency": "quarterly",
-    "backup_schedule": "daily",
-    "monitoring": true,
-    "sla": "99.5%"
-  },
-  "knowledge": {
-    "known_problems": [
-      "prob_0cb386ae2c684a53a69e8a4a786a298e"
-    ],
-    "available_solutions": [
-      "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0"
-    ],
-    "total_incidents": 12,
-    "mean_time_to_resolve": "45 min",
-    "common_issues": [
-      "Spam filter false positives",
-      "LDAP sync problems"
-    ]
-  },
-  "related_assets": [
-    "asset_ldap_01",
-    "asset_storage_mail_01",
-    "asset_backup_system_01"
-  ],
-  "tags": [
-    "email",
-    "communication",
-    "critical-infrastructure"
-  ]
-}
-```
+**Extrahiert:**
+- Problem-Titel (kurz, prägnant)
+- Detaillierte Beschreibung
+- Beobachtbare Symptome
+- Fehlermeldungen (wenn vorhanden)
+- Severity (low, medium, high, critical)
 
-### 8.3 Asset Types
+**Besonderheiten:**
+- Business-Impact-Assessment
+- Unterscheidung zwischen Symptom und Root Cause
+- Reporter-Daten-Extraktion aus Mail-Header
+
+### 6.2 Solution-Extraktion
+
+**Datei:** `mail_agent/catalog/prompts/extract_solution.txt`
+
+**Extrahiert:**
+- Lösungs-Titel
+- Lösungs-Typ (configuration, bugfix, workaround)
+- Schritt-für-Schritt-Anleitung
+- Voraussetzungen
+- Erfolgskriterien
+- Reusability-Score
+
+**Besonderheiten:**
+- Erzwingt Array[Object] für Steps (nicht Array[String])
+- Post-Processing für Mail-ID-basierte IDs
+- Komplexitäts-Einschätzung (low, medium, high)
+
+### 6.3 Asset-Identifikation
+
+**Datei:** `mail_agent/catalog/prompts/extract_asset.txt`
+
+**Extrahiert:**
+- Asset-Name (z.B. "Microsoft Outlook")
+- Asset-Typ (z.B. "mail_client")
+- Kategorie (z.B. "client")
+- Technische Details (Software, Version, Plattform)
+- Criticality-Assessment
+
+**Besonderheiten:**
+- Verhindert Pipe-Symbole in type/category (EXAKT EINEN Wert wählen)
+- Flache Arrays ([] statt [[]])
+- Ownership-Extraktion aus Mail-Header
+
+---
+
+## 7. Dateistruktur (Implementiert)
 
 ```
-Categories:
-- communication
-- identity
-- infrastructure
-- application
-- network
-- security
-- storage
-- client
-
-Types (Selection):
-- mail_infrastructure
-- ldap_service
-- active_directory
-- web_server
-- database_server
-- file_server
-- backup_system
-- firewall
-- switch
-- vpn_gateway
-- erp_system
-- lms_system (Learning Management)
-- crm_system
-- workstation
-- mobile_device
+nice2know/
+├── mail_agent/
+│   ├── agents/                           # ✅ Kernkomponenten
+│   │   ├── __init__.py
+│   │   ├── imap_fetcher.py               # ✅ IMAP-Verbindung
+│   │   ├── mail_parser.py                # ✅ E-Mail-Parsing
+│   │   ├── attachment_handler.py         # ✅ Anhang-Verwaltung
+│   │   └── llm_request.py                # ✅ OLLAMA-Integration
+│   │
+│   ├── catalog/                          # ✅ Prompt- & Schema-Bibliothek
+│   │   ├── prompts/
+│   │   │   ├── extract_problem.txt       # ✅ Problem-Prompt
+│   │   │   ├── extract_solution.txt      # ✅ Solution-Prompt
+│   │   │   └── extract_asset.txt         # ✅ Asset-Prompt
+│   │   │
+│   │   └── json_store/
+│   │       ├── problem_schema.json       # ✅ Problem-Template
+│   │       ├── solution_schema.json      # ✅ Solution-Template
+│   │       └── asset_schema.json         # ✅ Asset-Template
+│   │
+│   ├── config/                           # ✅ Konfiguration
+│   │   ├── mail_config.json              # IMAP/SMTP-Einstellungen
+│   │   └── secrets.json                  # Credentials (gitignored)
+│   │
+│   ├── storage/                          # ✅ Dateisystem-Storage
+│   │   ├── mails/                        # Roh-E-Mails (.eml)
+│   │   ├── attachments/
+│   │   │   ├── images/                   # Screenshots
+│   │   │   ├── documents/                # PDFs, Docs
+│   │   │   └── logs/                     # Log-Dateien
+│   │   └── processed/                    # ✅ Generierte JSONs
+│   │
+│   ├── utils/                            # ✅ Hilfsfunktionen
+│   │   ├── __init__.py
+│   │   ├── logger.py                     # Strukturiertes Logging
+│   │   ├── file_handler.py               # Datei-Operationen
+│   │   └── credentials.py                # Secrets-Manager
+│   │
+│   ├── run_agent.py                      # ✅ Hauptprogramm
+│   └── test_mail.py                      # ✅ IMAP/SMTP-Test
+│
+├── documents/                            # Dokumentation
+│   ├── nice2know_json_schema_referenz.md # ✅ Schema-Doku
+│   └── nice2know_projektplan.md          # Dieser Plan
+│
+├── setup.sh                              # ✅ Environment-Setup
+├── requirements.txt                      # ✅ Python-Dependencies
+└── README.md                             # ✅ Projekt-Readme
 ```
 
 ---
 
-## 9. Case JSON
+## 8. Nächste Schritte (Phase 2 - MVP)
 
-### 9.1 Purpose
-Orchestrates the **complete support case**. Links problem, solution(s), and asset. Documents the resolution path including alternatives.
+### 8.1 Sprint 1: PostgreSQL-Integration (Priorität 1)
 
-### 9.2 Schema
+**Ziel:** JSON-Daten aus File-Storage in PostgreSQL importieren
 
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_case",
-  "id": "case_0cb386ae2c684a53a69e8a4a786a298e",
-  "mail_id": "0cb386ae-2c68-4a53-a69e-8a4a786a298e",
-  "created_at": "2025-11-15T10:35:57.424Z",
-  "resolved_at": "2025-11-15T14:20:00Z",
-  "case": {
-    "title": "Mail system import error",
-    "status": "resolved",
-    "priority": "high",
-    "reporter": {
-      "name": "John Smith",
-      "email": "john.smith@company.com"
-    }
-  },
-  "mail_metadata": {
-    "subject": "Re: Mail System Problems",
-    "from": "john.smith@company.com",
-    "to": "it-support@company.com",
-    "date": "2025-11-15T11:35:00Z",
-    "thread_id": "thread_abc123",
-    "has_attachments": false,
-    "attachments": []
-  },
-  "entities": {
-    "problem_id": "prob_0cb386ae2c684a53a69e8a4a786a298e",
-    "asset_id": "asset_mailsystem_01",
-    "applied_solution_id": "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0",
-    "alternative_solutions": []
-  },
-  "resolution_path": [
-    {
-      "step": 1,
-      "timestamp": "2025-11-15T11:40:00Z",
-      "action": "Problem analyzed",
-      "actor": "Support Staff",
-      "notes": "SMTP logs show rejection due to missing KB import"
-    },
-    {
-      "step": 2,
-      "timestamp": "2025-11-15T13:00:00Z",
-      "action": "Solution identified",
-      "actor": "Support Staff",
-      "solution_id": "sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0",
-      "notes": "Enable KB import as solution"
-    },
-    {
-      "step": 3,
-      "timestamp": "2025-11-15T14:10:00Z",
-      "action": "Solution implemented",
-      "actor": "Support Staff",
-      "outcome": "success"
-    },
-    {
-      "step": 4,
-      "timestamp": "2025-11-15T14:20:00Z",
-      "action": "Solution validated",
-      "actor": "Support Staff",
-      "outcome": "success",
-      "notes": "Test mail successfully imported into KB"
-    }
-  ],
-  "conversation_context": {
-    "thread_messages": 3,
-    "participants": [
-      "john.smith@company.com",
-      "it-support@company.com"
-    ],
-    "conversation_summary": "Mail system rejected mails. Cause: Missing KB import feature. Solution: KB import enabled."
-  },
-  "metrics": {
-    "time_to_first_response": "5 min",
-    "time_to_resolution": "3h 45min",
-    "reopened": false,
-    "satisfaction_score": null
-  },
-  "tags": [
-    "mail",
-    "quick-win",
-    "configuration"
-  ]
-}
-```
+**Tasks:**
+1. PostgreSQL-Setup
+   - [ ] Datenbank erstellen (`createdb nice2know`)
+   - [ ] Schema anlegen (siehe Kap. 8.2)
+   - [ ] Indizes erstellen
+   - [ ] Zugangsdaten in `secrets.json`
 
----
+2. Import-Script entwickeln
+   - [ ] `import_to_postgres.py` erstellen
+   - [ ] JSON-Datei → JSONB-Mapping
+   - [ ] Batch-Import für existing JSONs
+   - [ ] Transaction-Handling
 
-## 10. ID Conventions
+3. Run-Agent erweitern
+   - [ ] Nach JSON-Generierung → DB-Import
+   - [ ] Error-Handling bei DB-Fehlern
+   - [ ] Rollback-Strategie
 
-### 10.1 ID Format
+**Akzeptanzkriterien:**
+- ✅ Alle 3 JSON-Typen lassen sich importieren
+- ✅ JSONB-Queries funktionieren
+- ✅ Indizes beschleunigen Suchen
+- ✅ Existing JSONs im File-Storage migriert
 
-All IDs follow the schema: `{type}_{uuid}`
+**Zeitschätzung:** 1 Woche
 
-| Type | Prefix | Example |
-|------|--------|----------|
-| Problem | `prob_` | `prob_0cb386ae2c684a53a69e8a4a786a298e` |
-| Solution | `sol_` | `sol_a7b9c3d4e5f6a1b2c3d4e5f6a7b8c9d0` |
-| Asset | `asset_` | `asset_mailsystem_01` |
-| Case | `case_` | `case_0cb386ae2c684a53a69e8a4a786a298e` |
-| KB Article | `kb_art_` | `kb_art_001` |
-
-### 10.2 ID Generation
-
-- **Problem/Case**: Use email Message-ID (without special characters)
-- **Solution**: UUID v4
-- **Asset**: Manually assigned (speaking) or UUID for automatic creation
-
----
-
-## 11. Database Schema
-
-### 11.1 PostgreSQL Tables
+### 8.2 PostgreSQL-Schema (Bereit)
 
 ```sql
--- Collection: problems
+-- Problems Table
 CREATE TABLE problems (
     id SERIAL PRIMARY KEY,
     problem_id VARCHAR(100) UNIQUE NOT NULL,
@@ -759,9 +527,12 @@ CREATE INDEX idx_problems_asset ON problems(asset_id);
 CREATE INDEX idx_problems_mail ON problems(mail_id);
 CREATE INDEX idx_problems_status ON problems((data->>'status'));
 CREATE INDEX idx_problems_fulltext ON problems 
-    USING GIN(to_tsvector('english', data->>'problem'));
+    USING GIN(to_tsvector('english', 
+        COALESCE(data->'problem'->>'title', '') || ' ' ||
+        COALESCE(data->'problem'->>'description', '')
+    ));
 
--- Collection: solutions
+-- Solutions Table
 CREATE TABLE solutions (
     id SERIAL PRIMARY KEY,
     solution_id VARCHAR(100) UNIQUE NOT NULL,
@@ -772,10 +543,10 @@ CREATE TABLE solutions (
 
 CREATE INDEX idx_solutions_asset ON solutions(asset_id);
 CREATE INDEX idx_solutions_reusability ON solutions(
-    (data->'metadata'->>'reusability_score')
+    ((data->'metadata'->>'reusability_score')::float)
 );
 
--- Collection: assets
+-- Assets Table
 CREATE TABLE assets (
     id SERIAL PRIMARY KEY,
     asset_id VARCHAR(100) UNIQUE NOT NULL,
@@ -786,9 +557,10 @@ CREATE TABLE assets (
 );
 
 CREATE INDEX idx_assets_type ON assets((data->'asset'->>'type'));
+CREATE INDEX idx_assets_category ON assets((data->'asset'->>'category'));
 CREATE INDEX idx_assets_status ON assets((data->'asset'->>'status'));
 
--- Collection: cases
+-- Cases Table (Phase 2, später)
 CREATE TABLE cases (
     id SERIAL PRIMARY KEY,
     case_id VARCHAR(100) UNIQUE NOT NULL,
@@ -805,245 +577,405 @@ CREATE INDEX idx_cases_mail ON cases(mail_id);
 CREATE INDEX idx_cases_status ON cases((data->'case'->>'status'));
 ```
 
----
+### 8.3 Sprint 2: Attachment-Analyse (Priorität 2)
 
-## 12. Workflow & Processes
+**Ziel:** OCR und Text-Extraktion aus Anhängen
 
-### 12.1 Standard Workflow
+**Tasks:**
+1. OCR-Integration (Tesseract)
+   - [ ] Tesseract installieren
+   - [ ] Python-Wrapper (`pytesseract`)
+   - [ ] Bild → Text-Extraktion
+   - [ ] Sprach-Erkennung (DE + EN)
 
+2. PDF-Text-Extraktion
+   - [ ] PyPDF2 oder pdfplumber
+   - [ ] Text aus PDFs extrahieren
+   - [ ] Layout-Preservation
+
+3. Integration in Problem-JSON
+   - [ ] Extrahierter Text → `problem.error_messages`
+   - [ ] Attachment-Metadaten in Case-JSON
+
+**Zeitschätzung:** 2 Wochen
+
+### 8.4 Sprint 3: Case-JSON-Generierung (Priorität 3)
+
+**Ziel:** Verknüpfung von Problem-Solution-Asset
+
+**Tasks:**
+1. Case-JSON-Template erstellen
+2. Linking-Logic implementieren
+3. Resolution-Path dokumentieren
+4. Metriken berechnen (time_to_resolution)
+
+**Zeitschätzung:** 1 Woche
+
+### 8.5 Sprint 4: REST-API (Priorität 4)
+
+**Ziel:** CRUD-Operationen über HTTP-Endpunkte
+
+**Framework:** FastAPI (Python)
+
+**Endpunkte:**
 ```
-1. Email arrives
-   ↓
-2. Mail parser extracts data
-   ↓
-3. Queue: New job for OLLAMA worker
-   ↓
-4. OLLAMA worker analyzes email
-   ├── Identifies problem
-   ├── Identifies solution (if present)
-   └── Identifies/Creates asset
-   ↓
-5. JSON generator creates 3-4 JSONs
-   ↓
-6. Validation (schema check)
-   ↓
-7. Storage in database
-   ├── Problem → problems table
-   ├── Solution → solutions table
-   ├── Asset → assets table (upsert)
-   └── Case → cases table
-   ↓
-8. Update cross-references
-   ├── Asset.known_problems += problem_id
-   └── Asset.available_solutions += solution_id
-   ↓
-9. Optional: Generate KB article
-   ↓
-10. Done ✓
-```
-
-### 12.2 Special Cases
-
-#### Case 1: Email without solution
-```
-Problem is recorded, but:
-- entities.applied_solution_id = null
-- case.status = "open"
-- No Solution JSON created
-```
-
-#### Case 2: Multiple solution attempts
-```
-- Multiple Solution JSONs (sol_1, sol_2, sol_3)
-- resolution_path documents all attempts
-- entities.applied_solution_id = most successful solution
-- entities.alternative_solutions = [others]
-```
-
-#### Case 3: New asset
-```
-- Asset is automatically created
-- Minimal data (name, type from OLLAMA analysis)
-- ownership.department = "Unknown" → Manual review
-- asset.status = "pending_verification"
-```
-
-#### Case 4: Email with attachments
-```
-- Attachments stored in object storage
-- OCR/text extraction runs asynchronously
-- mail_metadata.attachments populated
-- Extracted text → problem.error_messages (if relevant)
-```
-
----
-
-## 13. API Endpoints
-
-### 13.1 REST API
-
-```
-# Problems
-GET    /api/v1/problems              # List all problems
-GET    /api/v1/problems/{id}         # Specific problem
-POST   /api/v1/problems              # Create new problem
-PUT    /api/v1/problems/{id}         # Update problem
-DELETE /api/v1/problems/{id}         # Delete problem
-
-# Solutions
+GET    /api/v1/problems
+GET    /api/v1/problems/{id}
 GET    /api/v1/solutions
-GET    /api/v1/solutions/{id}
-POST   /api/v1/solutions
-PUT    /api/v1/solutions/{id}
-DELETE /api/v1/solutions/{id}
-
-# Assets
 GET    /api/v1/assets
-GET    /api/v1/assets/{id}
-POST   /api/v1/assets
-PUT    /api/v1/assets/{id}
-DELETE /api/v1/assets/{id}
+GET    /api/v1/search?q={query}
+```
 
-# Cases
-GET    /api/v1/cases
-GET    /api/v1/cases/{id}
-POST   /api/v1/cases
-PUT    /api/v1/cases/{id}
-DELETE /api/v1/cases/{id}
+**Zeitschätzung:** 2 Wochen
 
-# Search
-GET    /api/v1/search?q={query}&type={problem|solution|asset}
-GET    /api/v1/search/advanced       # Faceted search
+---
 
-# Analytics
-GET    /api/v1/analytics/assets/{id}/problems     # All problems of an asset
-GET    /api/v1/analytics/assets/{id}/solutions    # All solutions of an asset
-GET    /api/v1/analytics/trends                   # Trend analyses
+## 9. Erfolgsmetriken (Tracking)
+
+### 9.1 KPIs für Phase 1 (PoC) ✅
+
+| Metrik | Ziel | Erreicht |
+|--------|------|----------|
+| E-Mails verarbeitbar | ✅ | ✅ 100% |
+| JSON-Generierung | ✅ | ✅ 3/3 Typen |
+| OLLAMA-Zuverlässigkeit | >90% | ✅ ~95% (manuell getestet) |
+| Schema-Konformität | 100% | ✅ 100% (mit Validation) |
+| Prompt-Engineering | Iterativ | ✅ 3 Iterationen |
+
+### 9.2 KPIs für Phase 2 (MVP) 🚧
+
+| Metrik | Ziel | Aktuell |
+|--------|------|---------|
+| PostgreSQL-Import | Funktionsfähig | 🚧 Offen |
+| Attachment-OCR | Text aus Bildern | 📋 Geplant |
+| Case-JSON-Linking | Vollständig | 📋 Geplant |
+| API-Endpunkte | 5+ RESTful | 📋 Geplant |
+| Response-Zeit | <2s pro Query | 📋 Zu messen |
+
+### 9.3 KPIs für Produktivbetrieb (Phase 3) 📋
+
+| Metrik | Ziel (nach 6 Monaten) | Status |
+|--------|----------------------|--------|
+| Knowledge Capture | >80% | 📋 Nicht gemessen |
+| Zeitersparnis | 30% | 📋 Nicht gemessen |
+| Lösungswiederverwendung | 40% | 📋 Nicht gemessen |
+| Datenqualität | <5% Fehler | 📋 Nicht gemessen |
+| User Adoption | 70% | 📋 Nicht gemessen |
+
+---
+
+## 10. Risiken & Mitigations (Aktualisiert)
+
+| Risiko | Wahrscheinlichkeit | Impact | Status | Mitigation |
+|--------|-------------------|--------|--------|------------|
+| OLLAMA extrahiert falsche Daten | Medium | Hoch | ✅ Mitigiert | Human Review für Stichproben |
+| Schema-Änderungen brechen Kompatibilität | Niedrig | Hoch | ✅ Mitigiert | Semantic Versioning |
+| Anhänge zu groß | Mittel | Mittel | ✅ Mitigiert | 50MB-Limit implementiert |
+| Datenschutz-Bedenken | Mittel | Hoch | ✅ Mitigiert | Lokales OLLAMA (kein Cloud) |
+| PostgreSQL-Performance | Niedrig | Mittel | 🚧 Offen | Indizes geplant |
+| OCR-Fehlerquote | Mittel | Mittel | 📋 Offen | Multi-Language-Support |
+
+---
+
+## 11. Technologie-Entscheidungen (Dokumentiert)
+
+### 11.1 Warum OLLAMA statt Cloud-LLMs?
+
+**Entscheidung:** Lokales OLLAMA statt OpenAI/Claude
+
+**Gründe:**
+1. **Datenschutz**: Keine Daten verlassen Server
+2. **Kosten**: Keine API-Gebühren
+3. **Latenz**: Keine Netzwerk-Roundtrips
+4. **Kontrolle**: Eigenes Modell-Hosting
+5. **Offline-Fähigkeit**: Kein Internet erforderlich
+
+**Trade-off:**
+- Hardware-Anforderungen (16GB RAM, GPU empfohlen)
+- Modell-Qualität niedriger als GPT-4/Claude
+
+### 11.2 Warum PostgreSQL statt MongoDB?
+
+**Entscheidung:** PostgreSQL + JSONB statt MongoDB
+
+**Gründe:**
+1. **Relationale Integrität**: Foreign Keys zwischen Tables
+2. **JSONB**: Flexibilität wie NoSQL + SQL-Queries
+3. **Indexierung**: GIN-Indizes für JSONB-Performance
+4. **ACID**: Transaktions-Garantien
+5. **Reife**: Sehr stabile, etablierte Technologie
+
+**Trade-off:**
+- Komplexere Queries für tief verschachtelte JSONs
+- Weniger "native" JSON-Unterstützung als MongoDB
+
+### 11.3 Warum File-Storage-Staging?
+
+**Entscheidung:** Zweistufiger Ansatz (File → DB)
+
+**Gründe:**
+1. **Debugging**: JSON-Dateien inspizierbar
+2. **Flexibilität**: DB-Schema änderbar ohne Re-Extraktion
+3. **Backup**: Dateien als Fallback
+4. **Iterativ**: PoC ohne DB-Abhängigkeit
+
+**Langfristig:** File-Storage bleibt für Audit-Trail
+
+---
+
+## 12. Lessons Learned (Phase 1)
+
+### 12.1 Prompt-Engineering
+
+**Gelernt:**
+- LLMs neigen zu Markdown-Code-Blocks (`json\n...\n``)
+- Post-Processing essentiell (Regex-Cleanup)
+- Schema als Beispiel → bessere Struktur-Konformität
+- Temperature=0.1 → deterministischer Output
+
+**Anpassungen:**
+- Prompt: "NO markdown, NO code blocks"
+- Cleanup-Funktion in `llm_request.py`
+- Schema-Einbettung in System-Prompt
+
+### 12.2 OLLAMA-Performance
+
+**Gelernt:**
+- llama3.2:latest ist ausreichend für Extraktion
+- Größere Modelle (13B+) nicht merklich besser
+- GPU beschleunigt deutlich (CPU: ~30s, GPU: ~5s pro Mail)
+
+**Empfehlung:**
+- llama3.2:latest für Production
+- GPU für >100 Mails/Tag
+
+### 12.3 ID-Generierung
+
+**Gelernt:**
+- LLMs können keine echten UUIDs generieren
+- Placeholder-IDs (`prob_[0-9a-f]{32}`) bleiben im Output
+- Mail-ID als Basis → konsistente IDs
+
+**Lösung:**
+- Post-Processing extrahiert Mail-ID
+- Generiert prob_/sol_-Präfix + Mail-ID-Hash
+- Garantiert Eindeutigkeit + Rückverfolgbarkeit
+
+---
+
+## 13. Deployment-Plan (Phase 2)
+
+### 13.1 Lokaler Server-Setup
+
+**Hardware-Anforderungen:**
+- CPU: 4+ Cores (8+ empfohlen)
+- RAM: 16GB (für OLLAMA + PostgreSQL)
+- Disk: 100GB+ (Modelle + Attachments + DB)
+- GPU: Optional (NVIDIA, für Performance)
+
+**Software-Stack:**
+```
+┌─────────────────────────────────┐
+│  Ubuntu 22.04 LTS               │
+├─────────────────────────────────┤
+│  Docker Compose (optional)      │
+│  ├─ PostgreSQL 14 Container     │
+│  └─ nice2know App Container     │
+│                                 │
+│  ODER native Installation:      │
+│  ├─ PostgreSQL 14               │
+│  ├─ OLLAMA (systemd service)    │
+│  └─ Python 3.10 venv            │
+└─────────────────────────────────┘
+```
+
+### 13.2 Installation (Native)
+
+```bash
+# 1. System-Updates
+sudo apt update && sudo apt upgrade -y
+
+# 2. PostgreSQL
+sudo apt install postgresql-14 postgresql-contrib -y
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+
+# 3. OLLAMA
+curl https://ollama.ai/install.sh | sh
+ollama pull llama3.2:latest
+
+# 4. nice2know
+cd /opt
+git clone https://github.com/yourusername/nice2know.git
+cd nice2know
+./setup.sh
+source venv/bin/activate
+
+# 5. PostgreSQL-Setup
+sudo -u postgres psql
+CREATE DATABASE nice2know;
+CREATE USER n2k_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE nice2know TO n2k_user;
+\q
+
+# 6. Schema erstellen
+psql -h localhost -U n2k_user -d nice2know < schema.sql
+
+# 7. Konfiguration
+cd mail_agent
+cp config/secrets.json.example config/secrets.json
+nano config/secrets.json  # Credentials eintragen
+
+# 8. Test
+python test_mail.py
+python agents/llm_request.py --test
+
+# 9. Produktiv starten
+python run_agent.py --loop --interval 300
+```
+
+### 13.3 Systemd-Service (Optional)
+
+```ini
+# /etc/systemd/system/nice2know.service
+[Unit]
+Description=nice2know Mail Agent
+After=network.target postgresql.service ollama.service
+
+[Service]
+Type=simple
+User=n2k_user
+WorkingDirectory=/opt/nice2know/mail_agent
+ExecStart=/opt/nice2know/venv/bin/python run_agent.py --loop --interval 300
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable nice2know
+sudo systemctl start nice2know
+sudo systemctl status nice2know
 ```
 
 ---
 
-## 14. Milestones & Timeline
+## 14. Zeitplan (Aktualisiert)
 
-### Phase 1: Proof of Concept (4 weeks)
-- **Week 1-2**: Infrastructure setup
-  - Mail fetcher implementation
-  - OLLAMA integration
-  - Basic JSON generator
-- **Week 3**: Database schema
-  - PostgreSQL setup
-  - Table design
-  - Create indexes
-- **Week 4**: Testing & iteration
-  - Process 10 test emails
-  - Evaluate JSON quality
-  - Schema adjustments
+### ✅ Phase 1: Proof of Concept (Abgeschlossen)
 
-### Phase 2: MVP (8 weeks)
-- **Week 5-6**: Complete workflow
-  - Queue system
-  - Worker pool
-  - Error handling
-- **Week 7-8**: Attachment processing
-  - OCR integration
-  - Storage system
-  - PDF extraction
-- **Week 9-10**: API development
-  - REST endpoints
-  - Authentication
-  - Documentation (OpenAPI)
-- **Week 11-12**: Testing & optimization
-  - Process 100+ emails
-  - Performance tuning
-  - Bug fixes
+**Dauer:** 4 Wochen (Okt - Nov 2025)
 
-### Phase 3: Production (4 weeks)
-- **Week 13**: Production deployment
-- **Week 14-15**: Monitoring & fine-tuning
-- **Week 16**: Documentation & training
+- **Woche 1-2**: Infrastruktur-Setup
+  - ✅ Mail Fetcher implementiert
+  - ✅ OLLAMA-Integration
+  - ✅ Basic JSON-Generator
+- **Woche 3**: Prompt-Engineering
+  - ✅ Problem/Solution/Asset-Prompts
+  - ✅ Schema-Templates
+  - ✅ Iterative Optimierung
+- **Woche 4**: Testing & Iteration
+  - ✅ 10+ Test-E-Mails verarbeitet
+  - ✅ JSON-Qualität evaluiert
+  - ✅ Schema-Anpassungen
 
----
+### 🚧 Phase 2: MVP (In Arbeit)
 
-## 15. Risks & Mitigations
+**Dauer:** 8 Wochen (Nov 2025 - Jan 2026)
 
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|------------|
-| OLLAMA extracts incorrect data | Medium | High | Human review flag for low confidence |
-| Schema changes break compatibility | Low | High | Versioning, migration scripts |
-| Email attachments too large | Medium | Medium | Size limit, compression |
-| Data privacy concerns | Medium | High | Anonymization of personal data |
-| OLLAMA performance issues | Medium | Medium | Model optimization, hardware upgrade |
+- **Woche 5-6**: PostgreSQL-Integration
+  - 🚧 DB-Setup
+  - 🚧 Import-Script
+  - 🚧 Migration existing JSONs
+- **Woche 7-8**: Attachment-Processing
+  - 📋 OCR-Integration (Tesseract)
+  - 📋 PDF-Text-Extraktion
+  - 📋 Storage-System
+- **Woche 9**: Case-JSON-Linking
+  - 📋 Case-Schema
+  - 📋 Linking-Logic
+  - 📋 Metriken-Berechnung
+- **Woche 10-11**: REST-API
+  - 📋 FastAPI-Setup
+  - 📋 CRUD-Endpunkte
+  - 📋 Authentication
+  - 📋 OpenAPI-Dokumentation
+- **Woche 12**: Testing & Optimierung
+  - 📋 100+ E-Mails verarbeiten
+  - 📋 Performance-Tuning
+  - 📋 Bug-Fixes
 
----
+### 📋 Phase 3: Production (Geplant)
 
-## 16. Success Metrics
+**Dauer:** 4 Wochen (Jan - Feb 2026)
 
-### KPIs (after 6 months)
-- **Knowledge capture**: >80% of all support emails automatically processed
-- **Time savings**: 30% reduction in time-to-resolution for recurring problems
-- **Knowledge reuse**: 40% of cases use existing solutions
-- **Data quality**: <5% extraction errors (measured by human review)
-- **User adoption**: 70% of support staff actively use KB
+- **Woche 13**: Production-Deployment
+- **Woche 14-15**: Monitoring & Fine-Tuning
+- **Woche 16**: Dokumentation & Training
 
 ---
 
-## 17. Next Steps
+## 15. Anhang A: Verwendete Dateien
 
-1. **Review & approval**: Discuss project plan with stakeholders
-2. **Technology evaluation**: Test OLLAMA model quality
-3. **Resource planning**: Developers, servers, budget
-4. **Proof of concept**: Manually process first 10 emails
-5. **Iterative refinement**: Adjust JSON schema based on reality
+### A.1 Python-Scripts (Implementiert)
+
+| Datei | Zweck | Status |
+|-------|-------|--------|
+| `run_agent.py` | Haupt-Orchestrierung | ✅ Fertig |
+| `agents/imap_fetcher.py` | IMAP-Verbindung | ✅ Fertig |
+| `agents/mail_parser.py` | E-Mail-Parsing | ✅ Fertig |
+| `agents/attachment_handler.py` | Anhang-Verwaltung | ✅ Fertig |
+| `agents/llm_request.py` | OLLAMA-Integration | ✅ Fertig |
+| `utils/logger.py` | Logging | ✅ Fertig |
+| `utils/file_handler.py` | Datei-Ops | ✅ Fertig |
+| `utils/credentials.py` | Credentials-Manager | ✅ Fertig |
+| `test_mail.py` | Connection-Test | ✅ Fertig |
+
+### A.2 Konfigurationsdateien
+
+| Datei | Zweck | Status |
+|-------|-------|--------|
+| `config/mail_config.json` | IMAP/SMTP-Einstellungen | ✅ Fertig |
+| `config/secrets.json` | Credentials | ✅ Fertig |
+| `requirements.txt` | Python-Dependencies | ✅ Fertig |
+| `setup.sh` | Environment-Setup | ✅ Fertig |
+
+### A.3 Prompt-Dateien
+
+| Datei | Zweck | Status |
+|-------|-------|--------|
+| `catalog/prompts/extract_problem.txt` | Problem-Extraktion | ✅ Fertig |
+| `catalog/prompts/extract_solution.txt` | Solution-Extraktion | ✅ Fertig |
+| `catalog/prompts/extract_asset.txt` | Asset-Identifikation | ✅ Fertig |
+
+### A.4 JSON-Schema-Templates
+
+| Datei | Zweck | Status |
+|-------|-------|--------|
+| `catalog/json_store/problem_schema.json` | Problem-Struktur | ✅ Fertig |
+| `catalog/json_store/solution_schema.json` | Solution-Struktur | ✅ Fertig |
+| `catalog/json_store/asset_schema.json` | Asset-Struktur | ✅ Fertig |
 
 ---
 
-## Appendix A: Example Data Flow
+## 16. Glossar
 
-### Input: Support Email
-```
-From: john.smith@company.com
-To: support@company.com
-Subject: Mail system not accepting mails
-Date: November 15, 2025, 11:35 AM
-
-Hello team,
-
-Our mail system is rejecting incoming emails.
-Senders receive bounce messages with "SMTP 550".
-The local spam model seems to be involved.
-
-Suggestion: Enable knowledge base import so that
-such cases are automatically captured.
-
-Regards,
-John
-```
-
-### Output: 4 JSON Files
-
-1. **prob_0cb386ae...json** (Problem)
-2. **sol_a7b9c3d4...json** (Solution)
-3. **asset_mailsystem_01.json** (Asset, possibly update)
-4. **case_0cb386ae...json** (Case)
-
-*(Detailed JSONs see chapters 6-9)*
-
----
-
-## Appendix B: Glossary
-
-- **Asset**: IT system, application, or infrastructure component
-- **Case**: A complete support case from report to solution
-- **OLLAMA**: Local large language model framework
-- **OCR**: Optical Character Recognition (text from images)
-- **Reusability Score**: Rating of how often a solution can be reused
-- **Resolution Path**: Chronological sequence of solution finding
-- **Schema Version**: Version number of JSON format
+- **Asset**: IT-System, Anwendung oder Infrastruktur-Komponente
+- **Case**: Vollständiger Support-Fall von Meldung bis Lösung (Phase 2)
+- **JSONB**: PostgreSQL-binäres JSON-Datenformat
+- **OLLAMA**: Lokales Large Language Model Framework
+- **OCR**: Optical Character Recognition (Text aus Bildern)
+- **PoC**: Proof of Concept (Machbarkeitsnachweis)
+- **Reusability Score**: Bewertung der Wiederverwendbarkeit einer Lösung (0.0-1.0)
+- **Schema Version**: Versionsnummer des JSON-Formats (Semantic Versioning)
 - **UUID**: Universally Unique Identifier
-- **JSONB**: PostgreSQL binary JSON data type
 
 ---
 
-**Document Version**: 1.1  
-**Last Update**: November 15, 2025  
-**Next Review**: December 1, 2025
+**Dokument-Version**: 1.2  
+**Letztes Update**: 15. November 2025  
+**Nächstes Review**: 1. Dezember 2025 (nach Sprint 1)  
+**Status**: Phase 1 ✅ | Phase 2 🚧 | Phase 3 📋
