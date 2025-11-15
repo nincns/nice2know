@@ -1,12 +1,36 @@
 {
-  "title": "string - short problem title, max 100 chars",
-  "description": "string - detailed problem description",
-  "symptoms": [
-    "string - observable symptom 1",
-    "string - observable symptom 2"
-  ],
-  "error_messages": [
-    "string - error message or code"
-  ],
-  "severity": "string - one of: low, medium, high, critical"
+  "schema_version": "1.0.0",
+  "type": "n2k_problem",
+  "id": "prob_<uuid>",
+  "mail_id": "string - email message ID",
+  "asset_id": "string - affected asset ID",
+  "timestamp": "ISO8601 timestamp",
+  "reporter": {
+    "name": "string - reporter name",
+    "email": "string - reporter email",
+    "department": "string - department (optional)"
+  },
+  "problem": {
+    "title": "string - short problem title, max 200 chars",
+    "description": "string - detailed description",
+    "symptoms": ["array of observable symptoms"],
+    "error_messages": ["array of error messages or codes"],
+    "affected_functionality": ["array of affected functions"]
+  },
+  "classification": {
+    "category": "string - email|identity|network|application|infrastructure|client|security|other",
+    "subcategory": "string - fine-grained category",
+    "severity": "string - low|medium|high|critical",
+    "priority": "string - priority indicator",
+    "affected_users": "string - number/group of affected users",
+    "business_impact": "string - low|medium|high|critical"
+  },
+  "context": {
+    "time_of_occurrence": "ISO8601 timestamp - when problem occurred",
+    "frequency": "string - once|intermittent|continuous",
+    "environment": "string - production|staging|development",
+    "related_changes": ["array of recent system changes"]
+  },
+  "status": "string - open|in_progress|resolved|closed",
+  "resolution_date": "ISO8601 timestamp - when resolved (optional)"
 }

@@ -69,46 +69,44 @@ class LLMClient:
                  json_schema: Optional[Dict] = None) -> Optional[str]:
         """
         Generate response from LLM with strict JSON enforcement
-        
-        Args:
-            prompt: User prompt
-            system_prompt: System/instruction prompt
-            json_schema: Expected JSON structure (for validation)
-        
-        Returns:
-            Generated text or None on error
         """
         if not self.test_connection():
             return None
         
-        # Build enhanced prompt for JSON
-        if json_schema:
-            full_prompt = f"{system_prompt}\n\n{prompt}\n\nIMPORTANT: Return ONLY valid JSON. No explanations. No markdown. Just JSON."
+        # Build enhanced prompt with schema as example
+        if json_schema and system_prompt:
+            # Format schema as example
+            schema_example = json.dumps(json_schema, indent=2, ensure_ascii=False)
+            full_prompt = f"""{system_prompt}
+
+EXPECTED JSON STRUCTURE (use this as template):
+{schema_example}
+
+EMAIL TO ANALYZE:
+{prompt}
+
+Remember: Return ONLY valid JSON matching the structure above. No explanations."""
+        elif system_prompt:
+            full_prompt = f"{system_prompt}\n\n{prompt}"
         else:
-            full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+            full_prompt = prompt
         
         # Build request with strict JSON formatting
         data = {
             "model": self.model,
             "prompt": full_prompt,
             "stream": False,
-            "temperature": 0.1,  # Low temperature for consistent output
-            "top_p": 0.9
+            "temperature": 0.1,
+            "top_p": 0.9,
+            "format": "json"  # Force JSON
         }
-        
-        # Force JSON format in Ollama
-        if json_schema:
-            data["format"] = "json"
-        
-        if system_prompt and not json_schema:
-            data["system"] = system_prompt
         
         try:
             print(f"[LLM] Sending request...")
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=data,
-                timeout=120  # 2 minutes for large responses
+                timeout=120
             )
             
             if response.status_code == 200:
@@ -117,14 +115,13 @@ class LLMClient:
                 
                 print(f"[LLM] ✓ Response received ({len(generated)} chars)")
                 
-                # Clean up markdown code blocks if present
+                # Clean up markdown if present
                 if generated.startswith('```'):
                     lines = generated.split('\n')
-                    # Remove first line (```json or ```) and last line (```)
                     if len(lines) > 2:
                         generated = '\n'.join(lines[1:-1]).strip()
                 
-                # Validate and format JSON if schema provided
+                # Validate and format JSON
                 if json_schema:
                     try:
                         parsed = json.loads(generated)
@@ -132,8 +129,6 @@ class LLMClient:
                         return json.dumps(parsed, indent=2, ensure_ascii=False)
                     except json.JSONDecodeError as e:
                         print(f"[LLM] ⚠️  Invalid JSON: {e}")
-                        print(f"[LLM]    Raw response (first 500 chars):")
-                        print(f"[LLM]    {generated[:500]}")
                         print(f"[LLM]    Attempting to extract JSON...")
                         
                         # Try to find JSON in response
@@ -153,12 +148,8 @@ class LLMClient:
                 return generated
             else:
                 print(f"[LLM] ✗ Request failed: HTTP {response.status_code}")
-                print(f"[LLM]    {response.text}")
                 return None
                 
-        except requests.exceptions.Timeout:
-            print(f"[LLM] ✗ Request timeout (>120s)")
-            return None
         except Exception as e:
             print(f"[LLM] ✗ Error: {e}")
             return None

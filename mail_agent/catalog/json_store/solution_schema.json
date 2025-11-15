@@ -1,9 +1,47 @@
 {
-  "title": "string - short solution title, max 100 chars",
-  "description": "string - what was done to solve the problem",
-  "steps": [
-    "string - step 1",
-    "string - step 2"
-  ],
-  "outcome": "string - one of: successful, failed, partial, unknown"
+  "schema_version": "1.0.0",
+  "type": "n2k_solution",
+  "id": "sol_<uuid>",
+  "problem_ids": ["array of problem IDs this solution addresses"],
+  "asset_id": "string - asset this solution applies to",
+  "timestamp": "ISO8601 timestamp",
+  "solution": {
+    "title": "string - short solution title",
+    "type": "string - configuration|bugfix|workaround|update|other",
+    "approach": "string - permanent_fix|workaround|temporary",
+    "description": "string - detailed solution explanation",
+    "prerequisites": ["array of prerequisites"],
+    "steps": [
+      {
+        "step_number": "integer",
+        "action": "string - short description",
+        "details": "string - detailed explanation",
+        "command": "string - command to execute (optional)",
+        "expected_result": "string - what should happen",
+        "estimated_duration": "string - time estimate",
+        "warnings": ["array of warnings (optional)"]
+      }
+    ],
+    "validation": {
+      "success_criteria": ["array of success criteria"],
+      "test_procedure": "string - how to test",
+      "rollback_plan": "string - what to do if it fails"
+    },
+    "outcome": {
+      "tested": "boolean - was solution tested",
+      "successful": "boolean - was test successful",
+      "side_effects": ["array of known side effects"],
+      "performance_impact": "string - none|minimal|moderate|significant"
+    }
+  },
+  "metadata": {
+    "author": "string - who documented this",
+    "source": "string - where solution came from",
+    "reusability_score": "float - 0.0-1.0, how reusable",
+    "complexity": "string - low|medium|high",
+    "estimated_time": "string - estimated implementation time",
+    "required_skills": ["array of required skills"]
+  },
+  "related_solutions": ["array of related solution IDs"],
+  "tags": ["array of tags"]
 }
