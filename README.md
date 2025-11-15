@@ -1,108 +1,72 @@
-# nice2know
-
-> Transform support emails into structured, searchable knowledge automatically.
-
-**nice2know** is an intelligent knowledge management system that converts email-based support communication into a structured, multi-dimensional knowledge base using AI-powered analysis.
+# nice2know - Intelligent Knowledge Management System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/yourusername/nice2know)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
+
+**nice2know** is an intelligent knowledge management system that automatically transforms email-based support communication into a searchable, structured knowledge base. Using AI-powered analysis with local OLLAMA models, it extracts problems, solutions, and affected IT assets, storing them in a multi-dimensional JSON structure.
 
 ---
 
-## 🎯 What is nice2know?
+## 🎯 Key Features
 
-nice2know automatically extracts structured knowledge from support emails by:
-
-1. **Analyzing** email conversations using AI (LLM)
-2. **Extracting** problems, solutions, and affected IT assets
-3. **Structuring** information in a multi-dimensional JSON format
-4. **Linking** related cases, problems, and solutions
-5. **Building** a searchable knowledge base
-
-### The Value Proposition
-
-- 📧 **Automatic Knowledge Capture**: Every support email becomes structured knowledge
-- 🔍 **Fast Problem Resolution**: Search previous solutions by symptom, error message, or asset
-- 🔗 **Asset-Centric View**: See all problems and solutions for each IT system
-- 📊 **Analytics Ready**: Track MTTR, common issues, and solution effectiveness
-- 🎓 **Onboarding Tool**: New team members learn from real cases
+- **Automatic Extraction**: Converts support emails into structured knowledge
+- **Problem-Solution-Asset Model**: Organizes information by problems, solutions, and IT assets
+- **Solution Reusability**: Share solutions across different asset categories
+- **Local AI Processing**: Uses OLLAMA for privacy-compliant, cost-free AI analysis
+- **PostgreSQL Backend**: Reliable data storage with JSONB support
+- **Full-Text Search**: Fast retrieval of relevant knowledge
+- **Cross-Reference System**: Link related cases, problems, and solutions
 
 ---
 
 ## 🏗️ Architecture
 
-```
-┌─────────────┐
-│   E-Mail    │
-│   (IMAP)    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Mail Parser │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ LLM Engine  │  ← Claude API
-│ (Analysis)  │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────┐
-│    JSON Generator               │
-│  ┌─────────┬─────────┬────────┐ │
-│  │ Problem │Solution │ Asset  │ │
-│  └─────────┴─────────┴────────┘ │
-│         └──────┬──────┘          │
-│           ┌────▼────┐            │
-│           │  Case   │            │
-│           └─────────┘            │
-└────────────────┬────────────────┘
-                 │
-                 ▼
-         ┌───────────────┐
-         │   Database    │
-         │   (MongoDB)   │
-         └───────────────┘
-```
 
----
+┌─────────────────┐
+│   Email Box     │
+│  (IMAP/API)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Mail Parser    │
+│  - Headers      │
+│  - Body         │
+│  - Attachments  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│     OLLAMA Processing Engine        │
+│  ┌─────────────────────────────┐    │
+│  │  1. Problem Extraction      │    │
+│  │  2. Solution Identification │    │
+│  │  3. Asset Recognition       │    │
+│  │  4. Context Analysis        │    │
+│  └─────────────────────────────┘    │
+└────────┬────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│     JSON Generator                  │
+│  ┌──────────┬──────────┬─────────┐  │
+│  │ Problem  │ Solution │  Asset  │  │
+│  │   JSON   │   JSON   │  JSON   │  │
+│  └──────────┴──────────┴─────────┘  │
+└────────┬────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│    PostgreSQL Database (JSONB)      │
+│  ┌─────────────────────────────┐    │
+│  │  - Problems Table           │    │
+│  │  - Solutions Table          │    │
+│  │  - Assets Table             │    │
+│  │  - Cases Table              │    │
+│  └─────────────────────────────┘    │
+└─────────────────────────────────────┘
 
-## 📦 Key Features
-
-### 🤖 AI-Powered Extraction
-- Automatic problem identification from email content
-- Solution extraction with step-by-step procedures
-- IT asset recognition and cataloging
-- Context analysis (severity, frequency, impact)
-
-### 🗂️ Multi-Dimensional Data Model
-Four interconnected JSON structures:
-
-1. **Problem JSON** - Lightweight problem descriptions
-2. **Solution JSON** - Detailed, reusable solutions with validation
-3. **Asset JSON** - IT asset catalog with problem/solution history
-4. **Case JSON** - Complete support case orchestration
-
-### 📎 Attachment Processing
-- OCR for screenshots (extract error messages)
-- Text extraction from PDFs and documents
-- Log file parsing
-- Automatic storage and indexing
-
-### 🔗 Smart Linking
-- Solutions can address multiple problems
-- Assets maintain problem/solution history
-- Cases track resolution paths including failed attempts
-- Related asset dependencies
-
-### 🔍 Search & Discovery
-- Full-text search across all entities
-- Asset-based filtering
-- Tag-based discovery
-- Severity and status filtering
 
 ---
 
@@ -111,105 +75,124 @@ Four interconnected JSON structures:
 ### Prerequisites
 
 - Python 3.8+
-- MongoDB 4.4+
-- IMAP-accessible email account
-- Anthropic API key (for Claude)
+- PostgreSQL 14+
+- OLLAMA (installed and running)
+- IMAP-enabled email account
 
 ### Installation
 
-```bash
-# Clone the repository
+1. **Clone the repository**
+bash
 git clone https://github.com/yourusername/nice2know.git
 cd nice2know
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+2. **Set up virtual environment**
+bash
+chmod +x install_env.sh
+./install_env.sh
+source venv/bin/activate
 
-# Copy and configure
-cp config.example.json config.json
-# Edit config.json with your settings
-```
 
-### Configuration
+3. **Install OLLAMA models**
+bash
+ollama pull llama3:8b
+# or
+ollama pull stablelm2:12b
 
-Edit `config.json`:
 
-```json
-{
-  "imap": {
-    "host": "mail.example.com",
-    "port": 993,
-    "username": "support@example.com",
-    "password": "your-password"
-  },
-  "llm": {
-    "provider": "anthropic",
-    "api_key": "your-api-key",
-    "model": "claude-sonnet-4-20250514"
-  },
-  "database": {
-    "uri": "mongodb://localhost:27017",
-    "name": "nice2know"
-  }
-}
-```
+4. **Configure PostgreSQL**
+bash
+# Create database
+createdb nice2know
 
-### Running
+# Run schema setup
+psql nice2know < schema.sql
 
-```bash
-# Fetch and process emails
-python mail_robot.py
 
-# Or run in automatic mode (continuous processing)
-python mail_robot.py --automatic
+5. **Configure email settings**
+bash
+cp config_mail.json.example config_mail.json
+# Edit config_mail.json with your IMAP/SMTP credentials
 
-# Or use the interactive menu
-python mail_robot.py
-```
+
+6. **Start the system**
+bash
+# Interactive menu mode
+python3 mail_robot.py
+
+# Automatic mode (runs continuously)
+python3 mail_robot.py --automatic
+
 
 ---
 
-## 📖 Documentation
+## 📋 Configuration
 
-### Core Documentation
+### config_mail.json
 
-- **[Project Plan](docs/nice2know_projektplan.md)** - Complete project overview, architecture, and roadmap
-- **[JSON Schema Reference](docs/nice2know_json_schema_referenz.md)** - Detailed documentation of all JSON keys and structures
-- **[API Documentation](docs/api.md)** - REST API endpoints (coming soon)
+json
+{
+    "imap": {
+        "host": "mail.example.com",
+        "port": 993,
+        "username": "support@example.com",
+        "password": "your_password",
+        "mailbox_inbox": "INBOX",
+        "mailbox_proceed": "Processed"
+    },
+    "smtp": {
+        "host": "mail.example.com",
+        "port": 587,
+        "username": "support@example.com",
+        "password": "your_password",
+        "use_tls": true,
+        "from_address": "support@example.com"
+    }
+}
 
-### Data Structures
 
-#### Example Problem JSON
+### OLLAMA Configuration
 
-```json
+Edit the model settings in the Python scripts:
+- `analyze_and_match.py`: Line 8 - `MODEL_NAME = "llama3:8b"`
+- `generate_and_send_replies.py`: Line 13 - `MODEL_NAME = "llama3:8b"`
+
+---
+
+## 📊 Data Structure
+
+nice2know uses **4 separate JSON structures** per support case:
+
+### 1. Problem JSON
+Captures the problem statement in compact form, optimized for fast full-text search.
+
+json
 {
   "schema_version": "1.0.0",
   "type": "n2k_problem",
   "id": "prob_abc123...",
+  "mail_id": "abc123...",
   "asset_id": "asset_mailsystem_01",
   "problem": {
-    "title": "Mail system rejects incoming emails",
-    "symptoms": [
-      "Incoming mails are rejected",
-      "Bounce messages with SMTP 550"
-    ],
+    "title": "Mail system not accepting incoming emails",
+    "description": "System rejects emails with SMTP 550 error",
+    "symptoms": ["Incoming mails rejected", "Bounce messages"],
     "error_messages": ["SMTP 550 - Mailbox unavailable"]
   },
   "classification": {
     "category": "email",
-    "severity": "high"
+    "severity": "high",
+    "priority": "quick_win"
   },
   "status": "resolved"
 }
-```
 
-#### Example Solution JSON
 
-```json
+### 2. Solution JSON
+Documents solution approaches in reusable form with step-by-step instructions.
+
+json
 {
   "schema_version": "1.0.0",
   "type": "n2k_solution",
@@ -217,257 +200,289 @@ python mail_robot.py
   "problem_ids": ["prob_abc123..."],
   "asset_id": "asset_mailsystem_01",
   "solution": {
-    "title": "Enable Knowledge Base Import",
+    "title": "Enable mail import to knowledge base",
     "type": "configuration",
+    "approach": "workaround",
     "steps": [
       {
         "step_number": 1,
-        "action": "Configure KB Import API",
-        "command": "echo 'KB_URL=...' >> config",
-        "expected_result": "Config contains new variable"
+        "action": "Configure KB import API",
+        "command": "echo 'KB_IMPORT_URL=...' >> config.env",
+        "expected_result": "Config updated"
       }
     ]
   },
   "metadata": {
     "reusability_score": 0.85,
-    "complexity": "low"
+    "complexity": "low",
+    "estimated_time": "10 min"
   }
 }
-```
 
-See [JSON Schema Reference](docs/nice2know_json_schema_referenz.md) for complete documentation.
+
+### 3. Asset JSON
+Catalogs IT assets (systems, applications, infrastructure).
+
+json
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_asset",
+  "id": "asset_mailsystem_01",
+  "asset": {
+    "name": "Mail System",
+    "display_name": "Central Email System",
+    "type": "mail_infrastructure",
+    "status": "active",
+    "criticality": "high"
+  },
+  "technical": {
+    "software": "Postfix",
+    "version": "3.7.2",
+    "platform": "Linux (Ubuntu 22.04 LTS)"
+  },
+  "knowledge": {
+    "known_problems": ["prob_abc123..."],
+    "available_solutions": ["sol_xyz789..."],
+    "total_incidents": 12
+  }
+}
+
+
+### 4. Case JSON
+Orchestrates the complete support case, linking problem, solution(s), and asset.
+
+json
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_case",
+  "id": "case_abc123...",
+  "mail_id": "abc123...",
+  "entities": {
+    "problem_id": "prob_abc123...",
+    "asset_id": "asset_mailsystem_01",
+    "applied_solution_id": "sol_xyz789..."
+  },
+  "resolution_path": [
+    {
+      "step": 1,
+      "timestamp": "2025-11-15T11:40:00Z",
+      "action": "Problem analyzed",
+      "outcome": "success"
+    }
+  ],
+  "metrics": {
+    "time_to_resolution": "3h 45min"
+  }
+}
+
 
 ---
 
-## 🛠️ Development
+## 🗄️ Database Schema
 
-### Project Structure
+### PostgreSQL Tables
 
-```
+sql
+-- Problems
+CREATE TABLE problems (
+    id SERIAL PRIMARY KEY,
+    problem_id VARCHAR(100) UNIQUE NOT NULL,
+    mail_id VARCHAR(100) NOT NULL,
+    asset_id VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Solutions
+CREATE TABLE solutions (
+    id SERIAL PRIMARY KEY,
+    solution_id VARCHAR(100) UNIQUE NOT NULL,
+    asset_id VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Assets
+CREATE TABLE assets (
+    id SERIAL PRIMARY KEY,
+    asset_id VARCHAR(100) UNIQUE NOT NULL,
+    asset_name VARCHAR(255) UNIQUE NOT NULL,
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Cases
+CREATE TABLE cases (
+    id SERIAL PRIMARY KEY,
+    case_id VARCHAR(100) UNIQUE NOT NULL,
+    mail_id VARCHAR(100) NOT NULL,
+    problem_id VARCHAR(100) REFERENCES problems(problem_id),
+    asset_id VARCHAR(100) REFERENCES assets(asset_id),
+    applied_solution_id VARCHAR(100),
+    data JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    resolved_at TIMESTAMP
+);
+
+
+---
+
+## 🔧 Workflow
+
+### Standard Processing Flow
+
+1. **Email Arrival**: Fetch emails via IMAP
+2. **Parsing**: Extract headers, body, attachments
+3. **Queue Job**: Add to processing queue
+4. **AI Analysis**: OLLAMA extracts problem, solution, asset
+5. **JSON Generation**: Create 3-4 JSON documents
+6. **Validation**: Schema and consistency checks
+7. **Database Storage**: Insert into PostgreSQL
+8. **Cross-Referencing**: Update asset knowledge links
+9. **Optional**: Generate KB article
+
+### Special Cases
+
+- **Email without solution**: Problem recorded, case status = "open"
+- **Multiple solution attempts**: Multiple solution JSONs, best one marked as applied
+- **New asset**: Automatically created with minimal data, flagged for review
+- **Email with attachments**: OCR/text extraction, stored in object storage
+
+---
+
+## 📁 Project Structure
+
+
 nice2know/
-├── docs/                           # Documentation
-│   ├── nice2know_projektplan.md
-│   └── nice2know_json_schema_referenz.md
-├── src/
-│   ├── mail/                       # Email processing
-│   │   ├── fetcher.py             # IMAP mail fetching
-│   │   └── parser.py              # Email parsing
-│   ├── llm/                        # LLM integration
-│   │   ├── analyzer.py            # Email analysis
-│   │   └── extractor.py           # Entity extraction
-│   ├── json/                       # JSON generation
-│   │   ├── problem.py
-│   │   ├── solution.py
-│   │   ├── asset.py
-│   │   └── case.py
-│   ├── db/                         # Database layer
-│   │   └── mongodb.py
-│   └── api/                        # REST API (coming soon)
-├── schemas/                        # JSON Schema files
-│   ├── n2k_problem_v1.0.0.json
-│   ├── n2k_solution_v1.0.0.json
-│   ├── n2k_asset_v1.0.0.json
-│   └── n2k_case_v1.0.0.json
-├── tests/                          # Unit tests
-├── config.example.json             # Example configuration
-├── requirements.txt
-├── mail_robot.py                   # Main entry point
-└── README.md
-```
+├── analyze_and_match.py          # Email analysis and relevance matching
+├── generate_and_send_replies.py  # Generate and send email responses
+├── mail_robot.py                 # Main orchestration script
+├── recieve_mail.py               # IMAP email fetcher
+├── create_demo_sheets.py         # Generate demo product datasheets
+├── config_mail.json              # Email configuration (not in repo)
+├── prepromt_mail_analysis.txt    # Prompt for email analysis
+├── prepromt_relevance_analysis.txt # Prompt for relevance matching
+├── prepromt_mail_generation.txt  # Prompt for reply generation
+├── pre_prompt_datasheet.txt      # Prompt for datasheet generation
+├── requirements.txt              # Python dependencies
+├── install_env.sh                # Environment setup script
+├── schema.sql                    # PostgreSQL database schema
+├── inbox/                        # Incoming emails (XML)
+├── analyzed/                     # Analysis results
+├── draft/                        # Match results
+├── processed/                    # Processed emails
+├── outbox/                       # Generated responses
+├── send/                         # Sent responses
+├── finished/                     # Completed cases
+└── database/
+    └── datasheets/               # Product/service data
 
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src tests/
-
-# Run specific test file
-pytest tests/test_mail_parser.py
-```
-
-### Code Style
-
-We use:
-- **Black** for code formatting
-- **pylint** for linting
-- **mypy** for type checking
-
-```bash
-# Format code
-black src/
-
-# Lint
-pylint src/
-
-# Type check
-mypy src/
-```
-
----
-
-## 🔌 API (Coming Soon)
-
-### Planned Endpoints
-
-```
-GET    /api/v1/problems              # List all problems
-GET    /api/v1/problems/{id}         # Get specific problem
-GET    /api/v1/solutions             # List all solutions
-GET    /api/v1/assets                # List all assets
-GET    /api/v1/assets/{id}/problems  # Get all problems for an asset
-GET    /api/v1/search?q={query}      # Full-text search
-```
-
----
-
-## 🗺️ Roadmap
-
-### Phase 1: Proof of Concept ✅
-- [x] Basic email fetching
-- [x] LLM integration (Ollama/Claude)
-- [x] JSON structure design
-- [ ] MongoDB integration
-- [ ] Schema validation
-
-### Phase 2: MVP (Current)
-- [ ] Attachment processing (OCR, PDF extraction)
-- [ ] Queue system for scalability
-- [ ] Worker pool implementation
-- [ ] REST API development
-- [ ] Web UI (basic)
-
-### Phase 3: Production
-- [ ] Advanced search & filtering
-- [ ] Analytics dashboard
-- [ ] Auto-suggestion during ticket creation
-- [ ] Multi-tenant support
-- [ ] Integration with ticket systems
-
-### Future Ideas
-- [ ] Predictive maintenance recommendations
-- [ ] Automated solution testing
-- [ ] Knowledge graph visualization
-- [ ] Slack/Teams integration
-- [ ] Mobile app
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-### How to Contribute
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### Development Setup
-
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Install pre-commit hooks
-pre-commit install
-
-# Run tests before committing
-pytest
-```
-
 ---
 
-## 📊 Use Cases
-
-### For IT Support Teams
-- **Faster Resolution**: Search for similar problems and proven solutions
-- **Knowledge Retention**: Capture expert knowledge automatically
-- **Onboarding**: New team members learn from historical cases
-
-### For IT Management
-- **Analytics**: Track MTTR, problem frequency, asset reliability
-- **Capacity Planning**: Identify problematic systems requiring upgrade
-- **Process Improvement**: Analyze common issues and root causes
-
-### For Organizations
-- **Compliance**: Document all incidents with full audit trail
-- **Cost Reduction**: Reduce escalations through better knowledge sharing
-- **Service Quality**: Consistent problem resolution across team
-
----
-
-## 🏢 Enterprise Features (Planned)
-
-- **SSO Integration** (SAML, OAuth)
-- **Role-Based Access Control** (RBAC)
-- **Multi-Tenant Architecture**
-- **SLA Management**
-- **Custom Workflows**
-- **Advanced Analytics & Reporting**
-- **API Rate Limiting**
-- **High Availability Deployment**
-
----
-
-## 🔐 Security & Privacy
-
-### Data Protection
-- **Email Storage**: Original emails stored encrypted at rest
-- **Anonymization**: PII can be automatically redacted
-- **Access Control**: Role-based access to sensitive information
-- **Audit Trail**: All access and modifications logged
-
-### API Security
-- **Authentication**: API key or OAuth 2.0
-- **Rate Limiting**: Prevent abuse
-- **Input Validation**: All inputs sanitized and validated
-- **HTTPS Only**: All communication encrypted
-
----
-
-## 📜 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
+## 🔮 Roadmap
+
+### Phase 1: Proof of Concept ✅
+- [x] IMAP email fetcher
+- [x] OLLAMA integration
+- [x] Basic JSON generation
+- [ ] PostgreSQL integration
+
+### Phase 2: MVP
+- [ ] Complete workflow automation
+- [ ] Attachment processing (OCR)
+- [ ] REST API
+- [ ] Full-text search
+- [ ] Web UI (optional)
+
+### Phase 3: Production
+- [ ] Performance optimization
+- [ ] Monitoring & logging
+- [ ] User documentation
+- [ ] Automated testing
+
+---
+
+## 📊 Success Metrics
+
+After 6 months of operation:
+- **Knowledge Capture**: >80% of support emails automatically processed
+- **Time Savings**: 30% reduction in time-to-resolution for recurring problems
+- **Knowledge Reuse**: 40% of cases use existing solutions
+- **Data Quality**: <5% extraction errors (measured by human review)
+- **User Adoption**: 70% of support staff actively use KB
+
+---
+
+## ⚙️ Technical Requirements
+
+- **Python**: 3.8 or higher
+- **PostgreSQL**: 14 or higher
+- **OLLAMA**: Latest version with at least one 8B+ parameter model
+- **RAM**: 16GB recommended (for OLLAMA)
+- **Disk**: 50GB+ (for models and attachments)
+
+---
+
+## 🐛 Troubleshooting
+
+### OLLAMA not responding
+bash
+# Check if OLLAMA is running
+curl http://localhost:11434/api/tags
+
+# Restart OLLAMA
+systemctl restart ollama
+
+
+### Database connection errors
+bash
+# Check PostgreSQL status
+systemctl status postgresql
+
+# Test connection
+psql -h localhost -U username -d nice2know
+
+
+### Email fetching issues
+- Verify IMAP credentials in `config_mail.json`
+- Check firewall rules for port 993 (IMAPS) and 587 (SMTP)
+- Enable "Less secure app access" if using Gmail
+
+---
+
+## 📧 Support
+
+For questions and support, please open an issue on GitHub.
+
+---
+
 ## 🙏 Acknowledgments
 
-- **Anthropic** for the Claude API
-- **MongoDB** for the flexible document database
-- **EAH Jena** - Servicezentrum Informatik for the initial use case
-- All contributors and early adopters
+- OLLAMA team for the excellent local LLM framework
+- PostgreSQL community for robust database technology
+- All contributors to this project
 
 ---
 
-## 📧 Contact & Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nice2know/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/nice2know/discussions)
-- **Email**: support@nice2know.example.com
-- **Documentation**: [https://docs.nice2know.example.com](https://docs.nice2know.example.com)
-
----
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/nice2know&type=Date)](https://star-history.com/#yourusername/nice2know&Date)
-
----
-
-## 💡 Related Projects
-
-- [ticket-to-know](https://github.com/example/ticket-to-know) - Similar concept for Jira tickets
-- [kb-generator](https://github.com/example/kb-generator) - General KB article generator
-- [support-analytics](https://github.com/example/support-analytics) - Support metrics dashboard
-
----
-
-**Built with ❤️ by the nice2know team**
-
-*Making support knowledge accessible, searchable, and reusable.*
+**Made with ❤️ for better knowledge management**
