@@ -1,5 +1,139 @@
 #!/usr/bin/env python3
 """
 Nice2Know Mail Agent - IMAP Fetcher
-TODO: Implement IMAP mail fetching logic
 """
+import imaplib
+from typing import List, Tuple
+import sys
+from pathlib import Path
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.logger import get_logger
+from utils.credentials import get_credentials
+
+logger = get_logger()
+
+class IMAPFetcher:
+    def __init__(self, config: dict):
+        self.config = config
+        self.imap_config = config['imap']
+        self.credentials = get_credentials().get_imap_credentials()
+        self.connection = None
+    
+    def connect(self) -> bool:
+        """Establish IMAP connection"""
+        try:
+            if self.imap_config['use_ssl']:
+                self.connection = imaplib.IMAP4_SSL(
+                    self.imap_config['host'], 
+                    self.imap_config['port']
+                )
+            else:
+                self.connection = imaplib.IMAP4(
+                    self.imap_config['host'], 
+                    self.imap_config['port']
+                )
+            
+            # Credentials from secrets.json
+            self.connection.login(
+                self.credentials['username'], 
+                self.credentials['password']
+            )
+            
+            logger.info(f"✓ Connected to {self.imap_config['host']}:{self.imap_config['port']}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ IMAP connection failed: {e}")
+            return False
+    
+    def select_mailbox(self, mailbox: str = None) -> bool:
+        """Select mailbox/folder"""
+        if not self.connection:
+            logger.error("No active IMAP connection")
+            return False
+        
+        mailbox = mailbox or self.imap_config.get('mailbox', 'INBOX')
+        
+        try:
+            status, messages = self.connection.select(mailbox)
+            if status == 'OK':
+                count = int(messages[0])
+                logger.info(f"Selected mailbox '{mailbox}' ({count} messages)")
+                return True
+            else:
+                logger.error(f"Failed to select mailbox '{mailbox}'")
+                return False
+        except Exception as e:
+            logger.error(f"Mailbox selection error: {e}")
+            return False
+    
+    def fetch_messages(self, limit: int = None, unseen_only: bool = True) -> List[Tuple[str, bytes]]:
+        """
+        Fetch emails from mailbox
+        Returns: List of (message_id, raw_email_bytes)
+        """
+        if not self.connection:
+            logger.error("No active IMAP connection")
+            return []
+        
+        try:
+            # Search criteria
+            search_criteria = 'UNSEEN' if unseen_only else 'ALL'
+            status, message_ids = self.connection.search(None, search_criteria)
+            
+            if status != 'OK':
+                logger.warning("No messages found")
+                return []
+            
+            id_list = message_ids[0].split()
+            
+            if not id_list:
+                logger.info("No messages to fetch")
+                return []
+            
+            # Apply limit
+            if limit and limit > 0:
+                id_list = id_list[-limit:]  # Get most recent N messages
+            
+            logger.info(f"Fetching {len(id_list)} message(s)...")
+            
+            messages = []
+            for num in id_list:
+                try:
+                    status, msg_data = self.connection.fetch(num, '(RFC822)')
+                    if status == 'OK':
+                        raw_email = msg_data[0][1]
+                        message_id = num.decode('utf-8')
+                        messages.append((message_id, raw_email))
+                        logger.debug(f"Fetched message ID {message_id}")
+                    else:
+                        logger.warning(f"Failed to fetch message {num}")
+                except Exception as e:
+                    logger.error(f"Error fetching message {num}: {e}")
+            
+            return messages
+            
+        except Exception as e:
+            logger.error(f"Message fetch error: {e}")
+            return []
+    
+    def mark_as_read(self, message_id: str):
+        """Mark message as read/seen"""
+        try:
+            self.connection.store(message_id, '+FLAGS', '\\Seen')
+            logger.debug(f"Marked message {message_id} as read")
+        except Exception as e:
+            logger.error(f"Failed to mark message {message_id} as read: {e}")
+    
+    def disconnect(self):
+        """Close IMAP connection"""
+        if self.connection:
+            try:
+                self.connection.close()
+                self.connection.logout()
+                logger.info("✓ IMAP connection closed")
+            except Exception as e:
+                logger.error(f"Error closing connection: {e}")
