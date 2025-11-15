@@ -252,11 +252,11 @@ def send_mail(recipient: str, subject: str, html_body: str) -> bool:
     """Send HTML email via SMTP"""
     try:
         creds = get_credentials()
-        smtp_config = creds.get_mail_config()
+        smtp_config = creds.get_smtp_credentials()
         
         # Create message
         msg = MIMEMultipart('alternative')
-        msg['From'] = smtp_config.get('smtp_user', 'noreply@example.com')
+        msg['From'] = smtp_config.get('username', 'noreply@example.com')
         msg['To'] = recipient
         msg['Subject'] = f"Re: {subject}"
         
@@ -270,10 +270,10 @@ def send_mail(recipient: str, subject: str, html_body: str) -> bool:
         msg.attach(part2)
         
         # Connect and send
-        smtp_server = smtp_config.get('smtp_server', 'localhost')
-        smtp_port = smtp_config.get('smtp_port', 587)
-        smtp_user = smtp_config.get('smtp_user')
-        smtp_password = smtp_config.get('smtp_password')
+        smtp_server = smtp_config.get('host', 'localhost')
+        smtp_port = smtp_config.get('port', 587)
+        smtp_user = smtp_config.get('username')
+        smtp_password = smtp_config.get('password')
         
         print(f"[SMTP] Connecting to {smtp_server}:{smtp_port}...")
         
