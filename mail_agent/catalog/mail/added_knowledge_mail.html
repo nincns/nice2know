@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nice2Know - Wissensextraktion bestätigen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .intro {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .intro h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .intro p {
+            color: #666;
+            line-height: 1.8;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-icon {
+            font-size: 24px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .section-body {
+            padding: 20px;
+        }
+        
+        .field {
+            margin-bottom: 15px;
+        }
+        
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        
+        .field-value {
+            font-size: 15px;
+            color: #333;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .field-value.multiline {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        
+        .list-items {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .list-items li {
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .list-items li:before {
+            content: "→";
+            position: absolute;
+            left: 12px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-severity-low {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .badge-severity-medium {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .badge-severity-high {
+            background-color: #fce4ec;
+            color: #c2185b;
+        }
+        
+        .badge-severity-critical {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .badge-status-resolved {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .badge-status-open {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .tag {
+            padding: 6px 12px;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .steps {
+            counter-reset: step-counter;
+        }
+        
+        .step {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        
+        .step:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .step:before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .step-action {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .step-details {
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .step-command {
+            background-color: #2d2d2d;
+            color: #fff;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .step-result {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #4caf50;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            margin-top: 30px;
+            border-radius: 6px;
+        }
+        
+        .cta-section h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .cta-section p {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background-color: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .button-secondary {
+            background-color: transparent;
+            color: white;
+            border: 2px solid white;
+            margin-left: 10px;
+        }
+        
+        .footer {
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .footer p {
+            margin-bottom: 10px;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .meta-item {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        
+        .meta-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .meta-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .button {
+                display: block;
+                margin-bottom: 10px;
+            }
+            
+            .button-secondary {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Nice2Know - Wissensextraktion</h1>
+            <p>Automatisch extrahierte Support-Informationen</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Intro -->
+            <div class="intro">
+                <h2>Hallo {{reporter_name}},</h2>
+                <p>
+                    vielen Dank für Ihre Support-Anfrage! Unser KI-System hat Ihre E-Mail analysiert und
+                    automatisch die folgenden Informationen extrahiert. Bitte prüfen Sie kurz, ob alles korrekt ist.
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>Wenn alles stimmt:</strong> Sie müssen nichts tun – die Informationen werden automatisch in unsere Wissensdatenbank übernommen.<br>
+                    <strong>Falls etwas nicht stimmt:</strong> Klicken Sie auf den Button unten, um Anpassungen vorzunehmen.
+                </p>
+            </div>
+            
+            <!-- Problem Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">🔴</span>
+                    <span class="section-title">Problem</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <div class="field-label">Titel</div>
+                        <div class="field-value">{{problem_title}}</div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="field-label">Beschreibung</div>
+                        <div class="field-value multiline">{{problem_description}}</div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="field-label">Symptome</div>
+                        <ul class="list-items">
+                            {{#problem_symptoms}}
+                            <li>{{.}}</li>
+                            {{/problem_symptoms}}
+                        </ul>
+                    </div>
+                    
+                    {{#problem_error_messages}}
+                    <div class="field">
+                        <div class="field-label">Fehlermeldungen</div>
+                        <ul class="list-items">
+                            {{#problem_error_messages}}
+                            <li>{{.}}</li>
+                            {{/problem_error_messages}}
+                        </ul>
+                    </div>
+                    {{/problem_error_messages}}
+                    
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <div class="meta-label">Schweregrad</div>
+                            <div class="meta-value">
+                                <span class="badge badge-severity-{{problem_severity}}">{{problem_severity}}</span>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Kategorie</div>
+                            <div class="meta-value">{{problem_category}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Status</div>
+                            <div class="meta-value">
+                                <span class="badge badge-status-{{problem_status}}">{{problem_status}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Solution Section -->
+            {{#has_solution}}
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">✅</span>
+                    <span class="section-title">Lösung</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <div class="field-label">Titel</div>
+                        <div class="field-value">{{solution_title}}</div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="field-label">Beschreibung</div>
+                        <div class="field-value multiline">{{solution_description}}</div>
+                    </div>
+                    
+                    {{#solution_prerequisites}}
+                    <div class="field">
+                        <div class="field-label">Voraussetzungen</div>
+                        <ul class="list-items">
+                            {{#solution_prerequisites}}
+                            <li>{{.}}</li>
+                            {{/solution_prerequisites}}
+                        </ul>
+                    </div>
+                    {{/solution_prerequisites}}
+                    
+                    <div class="field">
+                        <div class="field-label">Lösungsschritte</div>
+                        <div class="steps">
+                            {{#solution_steps}}
+                            <div class="step">
+                                <div class="step-action">{{action}}</div>
+                                <div class="step-details">{{details}}</div>
+                                {{#command}}
+                                <div class="step-command">{{command}}</div>
+                                {{/command}}
+                                <div class="step-result">✓ Erwartetes Ergebnis: {{expected_result}}</div>
+                            </div>
+                            {{/solution_steps}}
+                        </div>
+                    </div>
+                    
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <div class="meta-label">Typ</div>
+                            <div class="meta-value">{{solution_type}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Ansatz</div>
+                            <div class="meta-value">{{solution_approach}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Komplexität</div>
+                            <div class="meta-value">{{solution_complexity}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Geschätzte Zeit</div>
+                            <div class="meta-value">{{solution_estimated_time}}</div>
+                        </div>
+                    </div>
+                    
+                    {{#solution_tags}}
+                    <div class="field">
+                        <div class="field-label">Tags</div>
+                        <div class="tags">
+                            {{#solution_tags}}
+                            <span class="tag">{{.}}</span>
+                            {{/solution_tags}}
+                        </div>
+                    </div>
+                    {{/solution_tags}}
+                </div>
+            </div>
+            {{/has_solution}}
+            
+            <!-- Asset Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">💻</span>
+                    <span class="section-title">Betroffenes System (Asset)</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <div class="field-label">Name</div>
+                        <div class="field-value">{{asset_name}}</div>
+                    </div>
+                    
+                    <div class="field">
+                        <div class="field-label">Beschreibung</div>
+                        <div class="field-value multiline">{{asset_description}}</div>
+                    </div>
+                    
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <div class="meta-label">Typ</div>
+                            <div class="meta-value">{{asset_type}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Kategorie</div>
+                            <div class="meta-value">{{asset_category}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Kritikalität</div>
+                            <div class="meta-value">{{asset_criticality}}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Status</div>
+                            <div class="meta-value">{{asset_status}}</div>
+                        </div>
+                    </div>
+                    
+                    {{#asset_software}}
+                    <div class="field" style="margin-top: 15px;">
+                        <div class="field-label">Technische Details</div>
+                        <div class="meta-info">
+                            <div class="meta-item">
+                                <div class="meta-label">Software</div>
+                                <div class="meta-value">{{asset_software}}</div>
+                            </div>
+                            {{#asset_version}}
+                            <div class="meta-item">
+                                <div class="meta-label">Version</div>
+                                <div class="meta-value">{{asset_version}}</div>
+                            </div>
+                            {{/asset_version}}
+                            {{#asset_platform}}
+                            <div class="meta-item">
+                                <div class="meta-label">Plattform</div>
+                                <div class="meta-value">{{asset_platform}}</div>
+                            </div>
+                            {{/asset_platform}}
+                        </div>
+                    </div>
+                    {{/asset_software}}
+                </div>
+            </div>
+            
+            <!-- CTA Section -->
+            <div class="cta-section">
+                <h3>Alles korrekt?</h3>
+                <p>
+                    Falls Sie Änderungen vornehmen möchten, klicken Sie auf den Button unten.
+                    Ansonsten werden diese Informationen automatisch in 48 Stunden in unsere Wissensdatenbank übernommen.
+                </p>
+                <a href="{{magic_link}}" class="button">
+                    📝 Informationen bearbeiten
+                </a>
+                <a href="{{confirm_link}}" class="button button-secondary">
+                    ✓ Jetzt bestätigen
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Nice2Know Wissensmanagementsystem</strong></p>
+            <p>Diese E-Mail wurde automatisch generiert. Bei Fragen wenden Sie sich an: <a href="mailto:{{support_email}}">{{support_email}}</a></p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                Case-ID: {{case_id}} | Erstellt: {{created_at}} | Mail-ID: {{mail_id}}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
