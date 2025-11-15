@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_solution",
+  "id": "sol_c7f8e44b-4a3c-48d6-a43a-f9fc89d4d5ce",
+  "problem_ids": [
+    ""
+  ],
+  "asset_id": "outlook",
+  "timestamp": "2025-11-15T10:00:00Z",
+  "solution": {
+    "title": "Outlook: Minimized Ribbon Fix",
+    "type": "workaround",
+    "description": "Fix for Outlook minimized ribbon issue",
+    "prerequisites": [],
+    "steps": [
+      {
+        "step_number": 1,
+        "action": "Press STRG + F1",
+        "details": "Press STRG + F1 to toggle the ribbon on/off",
+        "command": null,
+        "expected_result": "Ribbon appears/disappears",
+        "estimated_duration": "30 sec",
+        "warnings": []
+      },
+      {
+        "step_number": 2,
+        "action": "Click Pfeil-Symbol (Arrow Symbol) to fix ribbon",
+        "details": "Click the arrow symbol to pin the ribbon for easy access",
+        "command": null,
+        "expected_result": "Ribbon remains visible",
+        "estimated_duration": "10 sec",
+        "warnings": []
+      }
+    ],
+    "validation": {
+      "success_criteria": [
+        "Ribbon is now visible"
+      ]
+    },
+    "outcome": {
+      "tested": true,
+      "successful": true,
+      "side_effects": [],
+      "performance_impact": "none"
+    }
+  },
+  "metadata": {
+    "author": "Steve Hentschke",
+    "source": "Email conversation",
+    "reusability_score": 0.7,
+    "complexity": "low",
+    "estimated_time": "2 min",
+    "required_skills": [
+      "Basic Outlook knowledge"
+    ]
+  },
+  "tags": [],
+  "related_articles": []
+}

@@ -7,7 +7,7 @@ email-validator>=2.1.0
 
 # File Handling
 python-magic>=0.4.27
-pillow>=10.4.0  # Python 3.13 compatible
+Pillow>=10.4.0  # Python 3.13 compatible (capital P!)
 
 # Utilities
 python-dotenv>=1.0.0
@@ -17,6 +17,9 @@ requests>=2.31.0
 
 # PostgreSQL (für spätere Integration)
 psycopg2-binary>=2.9.9
+
+# JSON Schema Validation
+jsonschema>=4.17.3
 
 # Optional: OCR Support (uncomment wenn benötigt)
 # pytesseract>=0.3.10
