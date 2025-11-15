@@ -1,18 +1,8 @@
-# nice2know .gitignore
-
-# ===========================
 # Python
-# ===========================
-
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -26,386 +16,63 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
+.venv
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Storage (exclude actual mail data)
+storage/mails/*.eml
+storage/attachments/**/*
+storage/processed/*.eml
+!storage/**/.gitkeep
 
-# Rope project settings
-.ropeproject
+# Logs
+logs/*.log
+*.log
+!logs/.gitkeep
 
-# mkdocs documentation
-/site
+# Configuration & Credentials - CRITICAL!
+config/secrets.json
+config/mail_config.json
+config/.env
+.env
+secrets.json
+*.secret
+*.credentials
+*.key
+*.pem
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# ===========================
-# macOS
-# ===========================
-
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# ===========================
-# Windows
-# ===========================
-
-# Windows thumbnail cache files
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-
-# Dump file
-*.stackdump
-
-# Folder config file
-[Dd]esktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# ===========================
-# Linux
-# ===========================
-
-*~
-
-# temporary files which can be created if a process still has a handle open of a deleted file
-.fuse_hidden*
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
-
-# ===========================
-# IDEs and Editors
-# ===========================
-
-# Visual Studio Code
+# IDE
 .vscode/
-*.code-workspace
-.history/
-
-# PyCharm
 .idea/
-*.iml
-*.iws
-*.ipr
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Vim
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-rt-v][a-z]
-[._]ss[a-gi-z]
-[._]sw[a-p]
 *.swp
 *.swo
 *~
-tags
-Session.vim
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# Eclipse
 .project
 .pydevproject
-.classpath
 .settings/
 
-# NetBeans
-nbproject/
-nbbuild/
-nbdist/
-.nb-gradle/
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# ===========================
-# nice2know Specific
-# ===========================
-
-# Configuration files with credentials
-config.json
-config_mail.json
-*.secret.json
-
-# Data directories
-inbox/
-processed/
-analyzed/
-draft/
-outbox/
-send/
-finished/
-attach/
-attachments/
-
-# Database directories (local development)
-database/
-data/
-mongodb_data/
-
-# Queue files
-*.lock
-process.lock
-
-# Generated JSON files (keep in gitignore for local dev)
-*.n2k.json
-prob_*.json
-sol_*.json
-asset_*.json
-case_*.json
-
-# Logs
-logs/
-*.log
-*.log.*
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# Cache
-.cache/
-cache/
-
-# Object storage (local)
-storage/
-object-storage/
-
-# Backup files
-*.bak
-*.backup
-*~
-
-# ===========================
-# MongoDB
-# ===========================
-
-# MongoDB data directory
-mongodb/
-mongo-data/
-
-# MongoDB logs
-mongodb.log
-mongod.log
-
-# ===========================
-# Docker
-# ===========================
-
-# Docker volumes
-docker-volumes/
-
-# ===========================
-# Documentation Build
-# ===========================
-
-# Sphinx
-_build/
-_static/
-_templates/
-
-# MkDocs
-site/
-
-# ===========================
-# Package Managers
-# ===========================
-
-# npm
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-
-# ===========================
-# Misc
-# ===========================
-
-# SSL Certificates (never commit!)
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-
-# API Keys and Secrets
-.secrets
-secrets/
-*.api-key
-
-# Local environment overrides
-.env.local
-.env.*.local
-
-# Test output
-test-output/
-test-results/
-
-# Coverage reports
+# Testing
+.pytest_cache/
 .coverage
 htmlcov/
+.tox/
 
-# Benchmarks
-benchmarks/
-*.benchmark
-
-# Profiling
-*.prof
-*.profile
+# Temporary
+*.tmp
+*.bak
+*.backup
+~*
