@@ -415,16 +415,19 @@ def send_mail(recipient: str, subject: str, html_body: str, mail_config: Dict, s
     """Send email using SMTP configuration"""
     try:
         smtp_config = mail_config.get('smtp', {})
+        imap_config = mail_config.get('imap', {})
         mail_secrets = secrets.get('mail', {})
         
-        # Get SMTP settings
-        smtp_host = smtp_config.get('host', 'localhost')
+        # Get SMTP settings with fallback to IMAP host
+        smtp_host = smtp_config.get('host') or imap_config.get('host', 'localhost')
         smtp_port = smtp_config.get('port', 587)
         smtp_user = mail_secrets.get('smtp_username', '')
         smtp_password = mail_secrets.get('smtp_password', '')
         from_address = smtp_config.get('from_address', smtp_user)
         from_name = smtp_config.get('from_name', 'Nice2Know System')
         use_starttls = smtp_config.get('use_starttls', True)
+        
+        print(f"[DEBUG] SMTP Config: host={smtp_host}, port={smtp_port}, user={smtp_user[:10]}...")
         
         # Build message
         msg = MIMEMultipart('alternative')
