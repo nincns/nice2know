@@ -42,67 +42,69 @@
 ## 🏗️ Systemarchitektur (Aktuell)
 
 
-┌──────────────────┐
-│   IMAP Mailbox   │
-│                  │
-└────────┬─────────┘
-         │ (IMAP/SSL)
-         ▼
-┌──────────────────┐
-│   Mail Fetcher   │  ← mail_agent/agents/imap_fetcher.py
-│  - IMAP Connect  │
-│  - Fetch Unseen  │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│   Mail Parser    │  ← mail_agent/agents/mail_parser.py
-│  - Headers       │
-│  - Body (Text)   │
-│  - Attachments   │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Attachment Store │  ← mail_agent/agents/attachment_handler.py
-│  /images/        │
-│  /documents/     │
-│  /logs/          │
-└──────────────────┘
-         │
-         ▼
-┌──────────────────────────────────┐
-│       OLLAMA LLM Engine          │  ← mail_agent/agents/llm_request.py
-│                                  │
-│  Prompts:                        │
-│  ├─ extract_problem.txt          │
-│  ├─ extract_solution.txt         │
-│  └─ extract_asset.txt            │
-│                                  │
-│  Schemas:                        │
-│  ├─ problem_schema.json          │
-│  ├─ solution_schema.json         │
-│  └─ asset_schema.json            │
-└────────┬─────────────────────────┘
-         │
-         ▼
-┌──────────────────┐
-│  JSON Generator  │
-│                  │
-│  ✓ Problem JSON  │
-│  ✓ Solution JSON │
-│  ✓ Asset JSON    │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  File Storage    │  ← mail_agent/storage/processed/
-│  (Staging)       │
-│                  │
-│  Nächster Step:  │
-│  → PostgreSQL    │  🚧 In Vorbereitung
-└──────────────────┘
+flowchart TD
 
+    subgraph IMAP["IMAP Mailbox"]
+    end
+
+    IMAP -->|IMAP/SSL| FETCHER
+
+    subgraph FETCHER["Mail Fetcher  
+(mail_agent/agents/imap_fetcher.py)"]
+        F1[IMAP Connect]
+        F2[Fetch Unseen]
+    end
+
+    FETCHER --> PARSER
+
+    subgraph PARSER["Mail Parser  
+(mail_agent/agents/mail_parser.py)"]
+        P1[Headers]
+        P2[Body (Text)]
+        P3[Attachments]
+    end
+
+    PARSER --> ATTACH
+
+    subgraph ATTACH["Attachment Store  
+(mail_agent/agents/attachment_handler.py)"]
+        A1[/images/]
+        A2[/documents/]
+        A3[/logs/]
+    end
+
+    ATTACH --> LLM
+
+    subgraph LLM["OLLAMA LLM Engine  
+(mail_agent/agents/llm_request.py)"]
+        direction TB
+        subgraph PROMPTS["Prompts"]
+            PR1[extract_problem.txt]
+            PR2[extract_solution.txt]
+            PR3[extract_asset.txt]
+        end
+
+        subgraph SCHEMAS["Schemas"]
+            S1[problem_schema.json]
+            S2[solution_schema.json]
+            S3[asset_schema.json]
+        end
+    end
+
+    LLM --> JSONGEN
+
+    subgraph JSONGEN["JSON Generator"]
+        J1[Problem JSON]
+        J2[Solution JSON]
+        J3[Asset JSON]
+    end
+
+    JSONGEN --> STORAGE
+
+    subgraph STORAGE["File Storage (Staging)  
+(mail_agent/storage/processed/)"]
+        ST1[Next step: PostgreSQL (Work in Progress)]
+    end
 
 ---
 
