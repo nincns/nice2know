@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nice2Know - Send Confirmation Mail
+Nice2Know - Send Confirmation Mail v3
 Loads mail from processed/ and moves to sent/ after successful sending
 """
 import sys
@@ -34,6 +34,7 @@ WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.analyze_json_quality import analyze_quality, get_field_status
+from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email
 
 # Colors
 GREEN = '\033[0;32m'
@@ -403,13 +404,24 @@ def fill_template_v2(template: str, problem: Dict, solution: Dict, asset: Dict,
     
     template = template.replace('{{ASSET_TECHNICAL}}', tech_html)
     
-    # Footer data
-    template = template.replace('{{magic_link}}', '#edit')  # TODO: Generate actual link
-    template = template.replace('{{confirm_link}}', '#confirm')  # TODO: Generate actual link
-    template = template.replace('{{support_email}}', 'support@example.com')  # TODO: From config
+    # Footer data - Generate actual URLs from config
+    mail_id = problem.get('mail_id', 'N/A')
+    
+    if mail_id != 'N/A':
+        editor_url = get_editor_url(mail_id)
+        confirm_url = get_confirm_url(mail_id)
+    else:
+        editor_url = '#edit'
+        confirm_url = '#confirm'
+    
+    support_email = get_support_email()
+    
+    template = template.replace('{{magic_link}}', editor_url)
+    template = template.replace('{{confirm_link}}', confirm_url)
+    template = template.replace('{{support_email}}', support_email)
     template = template.replace('{{case_id}}', problem.get('id', 'N/A'))
     template = template.replace('{{created_at}}', datetime.now().strftime('%Y-%m-%d %H:%M'))
-    template = template.replace('{{mail_id}}', problem.get('mail_id', 'N/A'))
+    template = template.replace('{{mail_id}}', mail_id)
     
     return template
 
@@ -474,7 +486,7 @@ def move_to_sent(mail_file: Path, sent_dir: Path) -> bool:
 
 def main():
     print(f"{BLUE}{'=' * 60}{NC}")
-    print(f"{BLUE}Nice2Know - Send Confirmation Mail{NC}")
+    print(f"{BLUE}Nice2Know - Send Confirmation Mail v3{NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Working directory: {WORKING_DIR}\n")
     
