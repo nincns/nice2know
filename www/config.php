@@ -1,4 +1,3 @@
-sudo tee /opt/nice2know/www/config.php > /dev/null << 'EOF'
 <?php
 /**
  * Nice2Know - Web Editor Configuration
@@ -180,15 +179,3 @@ if (DEBUG_MODE) {
     }
 }
 ?>
-EOF
-
-# Berechtigungen setzen
-sudo chown www-data:www-data /opt/nice2know/www/config.php
-sudo chmod 644 /opt/nice2know/www/config.php
-
-# Testen
-php -r "
-require '/opt/nice2know/www/config.php';
-echo 'Valid timestamp: ' . (validate_mail_id('20251115_222216') ? 'YES' : 'NO') . PHP_EOL;
-echo 'Valid hex: ' . (validate_mail_id('575496876c3645bc8bf5f79c1696c134') ? 'YES' : 'NO') . PHP_EOL;
-"
