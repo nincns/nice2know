@@ -41,7 +41,6 @@
 
 ## 🏗️ Systemarchitektur (Aktuell)
 
-
 flowchart TD
 
     IMAP["IMAP Mailbox"] -->|IMAP/SSL| FETCHER
