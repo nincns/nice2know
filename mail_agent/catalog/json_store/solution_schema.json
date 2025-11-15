@@ -1,47 +1,62 @@
 {
   "schema_version": "1.0.0",
   "type": "n2k_solution",
-  "id": "sol_<uuid>",
-  "problem_ids": ["array of problem IDs this solution addresses"],
-  "asset_id": "string - asset this solution applies to",
-  "timestamp": "ISO8601 timestamp",
+  "id": "sol_demo123456789abcdef0123456789abcdef",
+  "problem_ids": ["prob_demo123456789abcdef0123456789abc"],
+  "asset_id": "asset_application_demo_01",
+  "timestamp": "2025-11-15T10:00:00Z",
   "solution": {
-    "title": "string - short solution title",
-    "type": "string - configuration|bugfix|workaround|update|other",
-    "approach": "string - permanent_fix|workaround|temporary",
-    "description": "string - detailed solution explanation",
-    "prerequisites": ["array of prerequisites"],
+    "title": "Demo: Reset application settings",
+    "type": "configuration",
+    "approach": "permanent_fix",
+    "description": "This is a demo solution showing how to reset application settings when a feature is not visible.",
+    "prerequisites": [
+      "Access to application settings",
+      "Administrative rights (if needed)"
+    ],
     "steps": [
       {
-        "step_number": "integer",
-        "action": "string - short description",
-        "details": "string - detailed explanation",
-        "command": "string - command to execute (optional)",
-        "expected_result": "string - what should happen",
-        "estimated_duration": "string - time estimate",
-        "warnings": ["array of warnings (optional)"]
+        "step_number": 1,
+        "action": "Open application settings",
+        "details": "Navigate to File > Options or press CTRL+, to access settings menu",
+        "command": null,
+        "expected_result": "Settings window opens",
+        "estimated_duration": "30 sec",
+        "warnings": []
+      },
+      {
+        "step_number": 2,
+        "action": "Reset to defaults",
+        "details": "Click on 'Reset' button or select 'Restore defaults' option",
+        "command": null,
+        "expected_result": "Settings are restored to default values",
+        "estimated_duration": "10 sec",
+        "warnings": ["This will reset all custom settings"]
       }
     ],
     "validation": {
-      "success_criteria": ["array of success criteria"],
-      "test_procedure": "string - how to test",
-      "rollback_plan": "string - what to do if it fails"
+      "success_criteria": [
+        "Feature is now visible",
+        "Application works as expected"
+      ],
+      "test_procedure": "Close and reopen application, verify feature is accessible",
+      "rollback_plan": "Restore backup configuration or revert settings manually"
     },
     "outcome": {
-      "tested": "boolean - was solution tested",
-      "successful": "boolean - was test successful",
-      "side_effects": ["array of known side effects"],
-      "performance_impact": "string - none|minimal|moderate|significant"
+      "tested": true,
+      "successful": true,
+      "side_effects": [],
+      "performance_impact": "none"
     }
   },
   "metadata": {
-    "author": "string - who documented this",
-    "source": "string - where solution came from",
-    "reusability_score": "float - 0.0-1.0, how reusable",
-    "complexity": "string - low|medium|high",
-    "estimated_time": "string - estimated implementation time",
-    "required_skills": ["array of required skills"]
+    "author": "Demo User",
+    "source": "Email conversation",
+    "reusability_score": 0.8,
+    "complexity": "low",
+    "estimated_time": "2 min",
+    "required_skills": ["Basic application knowledge"]
   },
-  "related_solutions": ["array of related solution IDs"],
-  "tags": ["array of tags"]
+  "related_solutions": [],
+  "tags": ["demo", "configuration", "reset"]
 }

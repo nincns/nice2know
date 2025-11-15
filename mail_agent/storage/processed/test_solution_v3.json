@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_solution",
+  "id": "sol_[0-9a-f]{32}",
+  "problem_ids": [
+    "prob_[0-9a-f]{32}"
+  ],
+  "asset_id": "asset_outlook_eah_01",
+  "timestamp": "2025-11-15T10:00:00Z",
+  "solution": {
+    "title": "Reset Outlook ribbon",
+    "type": "configuration",
+    "approach": "permanent_fix",
+    "description": "This solution shows how to reset the Outlook ribbon when it's not visible.",
+    "steps": [
+      {
+        "step_number": 1,
+        "action": "Open application settings",
+        "details": "Navigate to File > Options or press CTRL+, to access settings menu",
+        "command": null,
+        "expected_result": "Settings window opens",
+        "estimated_duration": "30 sec",
+        "warnings": []
+      },
+      {
+        "step_number": 2,
+        "action": "Fix minimization issue",
+        "details": "Press STRG + F1 or click on the arrow button to unminimize the ribbon",
+        "command": null,
+        "expected_result": "Ribbon is restored to its normal state",
+        "estimated_duration": "10 sec",
+        "warnings": []
+      }
+    ],
+    "validation": {
+      "success_criteria": [
+        "Outlook ribbon is visible"
+      ],
+      "test_procedure": "Verify the ribbon is functional",
+      "rollback_plan": "Revert to previous settings if issue persists"
+    },
+    "outcome": {
+      "tested": true,
+      "successful": true,
+      "side_effects": [],
+      "performance_impact": "none"
+    }
+  },
+  "metadata": {
+    "author": "Steve Hentschke",
+    "source": "Email conversation",
+    "reusability_score": 0.8,
+    "complexity": "low",
+    "estimated_time": "47 min",
+    "required_skills": [
+      "Basic Outlook knowledge"
+    ]
+  },
+  "related_solutions": [],
+  "tags": []
+}

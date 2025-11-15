@@ -11,6 +11,21 @@ ANALYSIS GUIDELINES:
 - Extract version numbers if mentioned
 - Identify the vendor/manufacturer if stated
 
+TYPE AND CATEGORY SELECTION:
+- Choose EXACTLY ONE type from the allowed list
+- Choose EXACTLY ONE category from the allowed list
+- DO NOT use pipe symbols (|) - pick the MOST specific single value
+- Examples:
+  * "mail_client" NOT "software|client"
+  * "communication" NOT "productivity|communication"
+
+ALLOWED TYPES:
+mail_infrastructure, mail_client, authentication, hardware, software, 
+network, application, web_server, database_server, erp_system, workstation
+
+ALLOWED CATEGORIES:
+communication, identity, infrastructure, client, security, productivity
+
 EXTRACTION RULES:
 1. Return ONLY valid JSON matching the provided schema
 2. NO explanations, NO markdown code blocks, NO additional text
@@ -51,5 +66,12 @@ ASSET ID GENERATION:
 - Examples: asset_outlook_eah_01, asset_postfix_jena_01
 - DO NOT include full product names or long descriptions
 - Use 2-3 word identifiers maximum
+
+CLASSIFICATION RULES:
+- business_impact: Assess based on affected_users and context
+  * low = few users, non-critical function
+  * medium = departmental impact
+  * high = organization-wide impact
+  * critical = business-critical processes affected
 
 RESPONSE FORMAT: Pure JSON only, exactly matching the schema structure provided.

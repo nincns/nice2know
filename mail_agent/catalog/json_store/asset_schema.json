@@ -1,33 +1,33 @@
 {
   "schema_version": "1.0.0",
   "type": "n2k_asset",
-  "id": "asset_<systemname>_<location>_<number>",
-  "created_at": "2025-11-15T14:00:00Z",
-  "updated_at": "2025-11-15T14:00:00Z",
+  "id": "asset_application_demo_01",
+  "created_at": "2025-11-15T10:00:00Z",
+  "updated_at": "2025-11-15T10:00:00Z",
   "asset": {
-    "name": "Unique Asset Name",
-    "display_name": "User-Friendly Display Name",
-    "description": "What this asset does and its purpose",
-    "type": "mail_infrastructure|mail_client|authentication|hardware|software|network|application",
-    "category": "communication|identity|infrastructure|client|security|productivity",
-    "status": "active|inactive|decommissioned|planned",
-    "criticality": "low|medium|high|critical"
+    "name": "Demo Application",
+    "display_name": "Example Business Application",
+    "description": "This is a demo asset entry for a typical business application used in the organization",
+    "type": "software",
+    "category": "client",
+    "status": "active",
+    "criticality": "medium"
   },
   "technical": {
-    "software": "Software name (e.g., Microsoft Outlook, Postfix)",
-    "version": "Version number if mentioned (e.g., 3.7.2) or null",
-    "platform": "Operating system or platform (e.g., Windows 11, Ubuntu 22.04)",
-    "architecture": "CPU architecture (e.g., x86_64, ARM) or null",
-    "deployment": "on-premise|cloud|hybrid",
-    "vendor": "Manufacturer/provider (e.g., Microsoft, Apache Foundation)",
-    "license": "License type or null"
+    "software": "Demo Software Suite",
+    "version": "2024.1",
+    "platform": "Windows 11",
+    "architecture": "x86_64",
+    "deployment": "on-premise",
+    "vendor": "Demo Vendor Inc.",
+    "license": "Enterprise License"
   },
   "integrations": [],
   "ownership": {
-    "department": "Responsible department from email context",
-    "primary_contact": "Name of contact person",
-    "email": "Contact email address",
-    "escalation_contact": "Escalation contact or null"
+    "department": "IT Department",
+    "primary_contact": "Demo Admin",
+    "email": "it-support@example.org",
+    "escalation_contact": null
   },
   "documentation": {
     "wiki_url": null,
@@ -50,5 +50,5 @@
     "common_issues": []
   },
   "related_assets": [],
-  "tags": []
+  "tags": ["demo", "example"]
 }

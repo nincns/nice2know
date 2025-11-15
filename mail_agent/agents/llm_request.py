@@ -125,6 +125,46 @@ Remember: Return ONLY valid JSON matching the structure above. No explanations."
                 if json_schema:
                     try:
                         parsed = json.loads(generated)
+                        
+                        # POST-PROCESSING: Fix IDs based on mail_id
+                        import re
+                        
+                        # Extract mail_id if we have mailbody path
+                        mail_id_base = None
+                        if hasattr(self, '_current_mail_id'):
+                            mail_id_base = self._current_mail_id
+                        
+                        if mail_id_base:
+                            print(f"[LLM] Using mail_id base: {mail_id_base[:16]}...")
+                            
+                            # Fix solution ID
+                            if 'type' in parsed and parsed['type'] == 'n2k_solution':
+                                if 'id' in parsed and ('demo' in parsed['id'] or '123456' in parsed['id']):
+                                    parsed['id'] = f"sol_{mail_id_base}"
+                                    print(f"[LLM] ✓ Generated solution ID from mail")
+                            
+                            # Fix problem ID
+                            if 'type' in parsed and parsed['type'] == 'n2k_problem':
+                                if 'id' in parsed and ('demo' in parsed['id'] or '123456' in parsed['id']):
+                                    parsed['id'] = f"prob_{mail_id_base}"
+                                    print(f"[LLM] ✓ Generated problem ID from mail")
+                            
+                            # Fix problem_ids array (in solution)
+                            if 'problem_ids' in parsed:
+                                new_problem_ids = []
+                                for pid in parsed['problem_ids']:
+                                    if 'demo' in pid or '123456' in pid:
+                                        new_problem_ids.append(f"prob_{mail_id_base}")
+                                        print(f"[LLM] ✓ Generated problem_id from mail")
+                                    else:
+                                        new_problem_ids.append(pid)
+                                parsed['problem_ids'] = new_problem_ids
+                            
+                            # Fix mail_id field
+                            if 'mail_id' in parsed:
+                                parsed['mail_id'] = mail_id_base
+                                print(f"[LLM] ✓ Set mail_id")
+                        
                         print(f"[LLM] ✓ Valid JSON structure")
                         return json.dumps(parsed, indent=2, ensure_ascii=False)
                     except json.JSONDecodeError as e:
@@ -174,6 +214,40 @@ def load_json_schema(filepath: Path) -> Optional[Dict]:
         return schema
     except Exception as e:
         print(f"[SCHEMA] ✗ Failed to load {filepath}: {e}")
+        return None
+
+def extract_mail_id(mailbody_path: Path) -> Optional[str]:
+    """
+    Extract message ID from mail filename
+    Filename format: YYYYMMDD_HHMMSS_<UUID>@domain.eml
+    Returns: UUID part without hyphens (lowercase hex)
+    """
+    try:
+        filename = mailbody_path.stem  # Without .eml
+        # Split by @ to get part before domain
+        if '@' in filename:
+            before_at = filename.split('@')[0]
+        else:
+            before_at = filename
+        
+        # Extract UUID part (after last underscore)
+        parts = before_at.split('_')
+        if len(parts) >= 3:
+            uuid_part = parts[-1]  # Last part is UUID
+        else:
+            uuid_part = before_at
+        
+        # Remove all hyphens and convert to lowercase
+        mail_id = uuid_part.replace('-', '').lower()
+        
+        # Validate it's hex (32 chars)
+        if len(mail_id) >= 32 and all(c in '0123456789abcdef' for c in mail_id[:32]):
+            return mail_id[:32]
+        else:
+            print(f"[MAIL_ID] ⚠️  Invalid UUID format in filename: {mailbody_path.name}")
+            return None
+    except Exception as e:
+        print(f"[MAIL_ID] ✗ Failed to extract mail ID: {e}")
         return None
 
 def save_output(content: str, filepath: Path):
@@ -254,10 +328,16 @@ Examples:
     
     # Load mail body
     mail_content = None
+    mail_id = None
     if args.mailbody:
         mail_content = load_file(args.mailbody)
         if not mail_content:
             sys.exit(1)
+        
+        # Extract mail ID from filename
+        mail_id = extract_mail_id(args.mailbody)
+        if mail_id:
+            print(f"[MAIL_ID] Extracted: {mail_id[:16]}...{mail_id[-8:]}")
     
     # Build prompt
     if args.prompt:
@@ -278,6 +358,11 @@ Examples:
     
     # Generate
     print("\n" + "=" * 60)
+    
+    # Pass mail_id to client for post-processing
+    if mail_id:
+        client._current_mail_id = mail_id
+    
     response = client.generate(user_prompt, system_prompt, json_schema)
     print("=" * 60 + "\n")
     
