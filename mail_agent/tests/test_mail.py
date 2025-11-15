@@ -53,13 +53,13 @@ def test_imap_connection(mail_config, secrets):
     print(f"{BLUE}{'=' * 60}{NC}\n")
     
     imap_config = mail_config.get('imap', {})
-    imap_creds = secrets.get('imap', {})
+    mail_secrets = secrets.get('mail', {})
     
     host = imap_config.get('host', '')
     port = imap_config.get('port', 993)
     use_ssl = imap_config.get('use_ssl', True)
-    username = imap_creds.get('username', '')
-    password = imap_creds.get('password', '')
+    username = mail_secrets.get('imap_username', '')
+    password = mail_secrets.get('imap_password', '')
     
     print(f"Configuration:")
     print(f"  Host:     {host}:{port}")
@@ -120,20 +120,19 @@ def test_smtp_connection(mail_config, secrets, send_test_mail=False):
     print(f"{BLUE}Testing SMTP Connection (Mail Sending){NC}")
     print(f"{BLUE}{'=' * 60}{NC}\n")
     
-    # Try to get SMTP config, fallback to IMAP host
-    imap_config = mail_config.get('imap', {})
-    smtp_creds = secrets.get('smtp', {})
-    imap_creds = secrets.get('imap', {})
+    # Get config from mail_config and credentials from secrets
+    smtp_config = mail_config.get('smtp', {})
+    mail_secrets = secrets.get('mail', {})
     
-    # SMTP host (from secrets or derived from IMAP)
-    host = smtp_creds.get('host', imap_config.get('host', ''))
-    port = smtp_creds.get('port', 587)
-    use_ssl = smtp_creds.get('use_ssl', False)
-    use_starttls = smtp_creds.get('use_starttls', True)
-    username = smtp_creds.get('username', imap_creds.get('username', ''))
-    password = smtp_creds.get('password', imap_creds.get('password', ''))
-    from_address = smtp_creds.get('from_address', username)
-    from_name = smtp_creds.get('from_name', 'Nice2Know System')
+    # SMTP configuration
+    host = smtp_config.get('host', '')
+    port = smtp_config.get('port', 587)
+    use_ssl = smtp_config.get('use_ssl', False)
+    use_starttls = smtp_config.get('use_starttls', True)
+    username = mail_secrets.get('smtp_username', '')
+    password = mail_secrets.get('smtp_password', '')
+    from_address = smtp_config.get('from_address', username)
+    from_name = smtp_config.get('from_name', 'Nice2Know System')
     
     print(f"Configuration:")
     print(f"  Host:      {host}:{port}")
