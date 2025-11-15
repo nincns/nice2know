@@ -134,6 +134,42 @@ class IMAPFetcher:
         except Exception as e:
             logger.error(f"Failed to mark message {message_id} as read: {e}")
     
+    def move_to_folder(self, message_id: str, target_folder: str = 'processed'):
+        """Move message to another IMAP folder"""
+        try:
+            # Ensure folder exists
+            self._ensure_folder(target_folder)
+            
+            # Copy to target folder
+            result = self.connection.copy(message_id, target_folder)
+            if result[0] == 'OK':
+                # Mark original as deleted
+                self.connection.store(message_id, '+FLAGS', '\\Deleted')
+                # Expunge to actually delete
+                self.connection.expunge()
+                logger.info(f"Moved message {message_id} to '{target_folder}'")
+                return True
+            else:
+                logger.warning(f"Failed to copy message {message_id} to '{target_folder}'")
+                return False
+        except Exception as e:
+            logger.error(f"Failed to move message {message_id}: {e}")
+            return False
+    
+    def _ensure_folder(self, folder_name: str):
+        """Create IMAP folder if it doesn't exist"""
+        try:
+            # List existing folders
+            status, folders = self.connection.list()
+            folder_names = [f.decode().split('"')[-2] for f in folders]
+            
+            if folder_name not in folder_names:
+                logger.info(f"Creating IMAP folder '{folder_name}'...")
+                self.connection.create(folder_name)
+                logger.info(f"✓ Created folder '{folder_name}'")
+        except Exception as e:
+            logger.warning(f"Could not ensure folder '{folder_name}': {e}")
+    
     def disconnect(self):
         """Close IMAP connection"""
         if self.connection:
