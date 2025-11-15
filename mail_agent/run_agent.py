@@ -46,7 +46,8 @@ def load_config(config_path: str = None) -> dict:
             'extract_attachments': True
         },
         'filters': {
-            'mark_as_read': False
+            'mark_as_read': False,
+            'move_to_processed': True  # Move processed mails to 'processed' folder
         }
     }
     
@@ -118,6 +119,10 @@ def run_agent(config: dict, dry_run: bool = False):
             # Mark as read if configured
             if config['filters']['mark_as_read'] and not dry_run:
                 fetcher.mark_as_read(msg_id)
+            
+            # Move to processed folder if configured
+            if config['filters'].get('move_to_processed', False) and not dry_run:
+                fetcher.move_to_folder(msg_id, 'processed')
             
             processed_count += 1
             
