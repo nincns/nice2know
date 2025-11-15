@@ -91,6 +91,9 @@ def run_agent(config: dict, dry_run: bool = False):
     
     # Process each message
     processed_count = 0
+    target_folder = config['filters'].get('processed_folder', 'processed')
+    folder_ensured = False
+    
     for msg_id, raw_email in messages:
         logger.info(f"\n--- Processing message {msg_id} ---")
         
@@ -122,12 +125,20 @@ def run_agent(config: dict, dry_run: bool = False):
             
             # Move to processed folder if configured
             if config['filters'].get('move_to_processed', False) and not dry_run:
-                fetcher.move_to_folder(msg_id, 'processed')
+                # Ensure folder exists (only once)
+                if not folder_ensured:
+                    fetcher._ensure_folder(target_folder)
+                    folder_ensured = True
+                fetcher.move_to_folder(msg_id, target_folder)
             
             processed_count += 1
             
         except Exception as e:
             logger.error(f"Error processing message {msg_id}: {e}", exc_info=True)
+    
+    # Expunge deleted messages at the end
+    if config['filters'].get('move_to_processed', False) and not dry_run and processed_count > 0:
+        fetcher.expunge_deleted()
     
     # Cleanup
     fetcher.disconnect()
