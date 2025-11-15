@@ -26,7 +26,7 @@ def load_config():
     config_dir = script_dir.parent / 'config'
     
     # Load mail_config.json
-    mail_config_path = config_dir / 'mail_config.json'
+    mail_config_path = config_dir / 'mail.json'
     secrets_path = config_dir / 'secrets.json'
     
     if not mail_config_path.exists():
