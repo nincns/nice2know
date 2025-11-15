@@ -1,0 +1,9 @@
+{
+  "title": "Outlook Menüband",
+  "description": "",
+  "steps": [
+    "Minimiertes Menüband öffnen mit STRG + F1 oder Pfeil-Symbol unten rechts klicken",
+    "Menüband fixieren mit Pin-Symbol oder 'Menüband fixieren'option"
+  ],
+  "outcome": "successful"
+}

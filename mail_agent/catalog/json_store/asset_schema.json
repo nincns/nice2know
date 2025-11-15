@@ -1,0 +1,7 @@
+{
+  "asset_id": "string - unique identifier (e.g., asset_mailsystem_eah_01)",
+  "name": "string - asset name (e.g., Mail-System, Postfix Server)",
+  "type": "string - asset type (mail_infrastructure, authentication, hardware, etc.)",
+  "category": "string - category (communication, identity, infrastructure, client)",
+  "description": "string - brief description of what this asset does"
+}

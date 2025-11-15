@@ -1,0 +1,12 @@
+{
+  "title": "string - short problem title, max 100 chars",
+  "description": "string - detailed problem description",
+  "symptoms": [
+    "string - observable symptom 1",
+    "string - observable symptom 2"
+  ],
+  "error_messages": [
+    "string - error message or code"
+  ],
+  "severity": "string - one of: low, medium, high, critical"
+}

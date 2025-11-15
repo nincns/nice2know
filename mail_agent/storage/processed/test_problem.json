@@ -1,0 +1,10 @@
+{
+  "title": "Outlook Senden-Button fehlt",
+  "description": "Menüband/Senden-Button in Outlook ist minimiert, kann nicht sichtbar gemacht werden",
+  "symptoms": [
+    "Senden-Button nicht sichtbar im Nachrichtenfenster",
+    "Menüband ist minimiert und kann nicht wieder aufgeklappt werden"
+  ],
+  "error_messages": [],
+  "severity": "medium"
+}

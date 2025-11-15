@@ -1,0 +1,9 @@
+{
+  "title": "string - short solution title, max 100 chars",
+  "description": "string - what was done to solve the problem",
+  "steps": [
+    "string - step 1",
+    "string - step 2"
+  ],
+  "outcome": "string - one of: successful, failed, partial, unknown"
+}

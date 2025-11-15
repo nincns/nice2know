@@ -3,7 +3,6 @@
 Nice2Know Mail Agent - Credential Manager
 """
 import json
-import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -38,20 +37,34 @@ class CredentialManager:
         return {}
     
     def get(self, service: str, key: str = None) -> Any:
-        """Get credential for a service"""
+        """
+        Get credential for a service
+        
+        Args:
+            service: Service name (e.g., 'imap', 'smtp', 'llm')
+            key: Optional key within service (e.g., 'username', 'password')
+        
+        Returns:
+            If key is None: entire service dict
+            If key is provided: specific value
+        """
         if not self._secrets:
             raise RuntimeError("Secrets not loaded!")
         
         if service not in self._secrets:
             raise KeyError(f"Service '{service}' not found in secrets")
         
-        if key is None:
-            return self._secrets[service]
+        service_data = self._secrets[service]
         
-        if key not in self._secrets[service]:
+        # Return entire service if no key specified
+        if key is None:
+            return service_data
+        
+        # Return specific key
+        if key not in service_data:
             raise KeyError(f"Key '{key}' not found in service '{service}'")
         
-        return self._secrets[service][key]
+        return service_data[key]
     
     def get_imap_credentials(self) -> Dict[str, str]:
         """Convenience method for IMAP credentials"""
@@ -60,6 +73,10 @@ class CredentialManager:
     def get_smtp_credentials(self) -> Dict[str, Any]:
         """Convenience method for SMTP credentials"""
         return self.get('smtp')
+    
+    def get_llm_config(self) -> Dict[str, Any]:
+        """Convenience method for LLM configuration"""
+        return self.get('llm')
     
     def get_db_credentials(self) -> Dict[str, Any]:
         """Convenience method for PostgreSQL credentials"""

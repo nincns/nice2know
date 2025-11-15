@@ -15,70 +15,84 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-class CredentialManager:
-    _instance = None
-    _secrets = None
+class FileHandler:
+    def __init__(self, base_path: str):
+        self.base_path = Path(base_path)
+        self._ensure_directories()
     
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    def _ensure_directories(self):
+        """Create all required directories"""
+        dirs = [
+            self.base_path / 'mails',
+            self.base_path / 'attachments' / 'images',
+            self.base_path / 'attachments' / 'documents',
+            self.base_path / 'attachments' / 'logs',
+            self.base_path / 'processed'
+        ]
+        for d in dirs:
+            d.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Ensured directory exists: {d}")
     
-    def __init__(self):
-        if self._initialized:
-            return
+    def save_mail(self, mail_id: str, content: bytes, extension: str = 'eml') -> Path:
+        """Save raw email to disk"""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{timestamp}_{self._sanitize_filename(mail_id)}.{extension}"
+        filepath = self.base_path / 'mails' / filename
         
-        self._secrets = self._load_secrets()
-        self._initialized = True
+        with open(filepath, 'wb') as f:
+            f.write(content)
+        
+        logger.info(f"Saved mail: {filepath.name}")
+        return filepath
     
-    def _load_secrets(self) -> Dict[str, Any]:
-        """Load secrets from secrets.json"""
-        secrets_path = Path(__file__).parent.parent / 'config' / 'secrets.json'
+    def save_attachment(self, filename: str, content: bytes, category: str = 'documents') -> Path:
+        """Save attachment to categorized directory"""
+        safe_filename = self._sanitize_filename(filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        if secrets_path.exists():
-            try:
-                with open(secrets_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Warning: Failed to load secrets.json: {e}")
+        # Add hash to prevent duplicates
+        file_hash = hashlib.md5(content).hexdigest()[:8]
+        name, ext = os.path.splitext(safe_filename)
+        unique_filename = f"{timestamp}_{file_hash}_{name}{ext}"
         
-        return {}
+        filepath = self.base_path / 'attachments' / category / unique_filename
+        
+        with open(filepath, 'wb') as f:
+            f.write(content)
+        
+        logger.info(f"Saved attachment: {category}/{unique_filename} ({len(content)} bytes)")
+        return filepath
     
-    def get(self, service: str, key: str = None) -> Any:
-        """Get credential for a service"""
-        if not self._secrets:
-            raise RuntimeError("Secrets not loaded!")
-        
-        if service not in self._secrets:
-            raise KeyError(f"Service '{service}' not found in secrets")
-        
-        if key is None:
-            return self._secrets[service]
-        
-        if key not in self._secrets[service]:
-            raise KeyError(f"Key '{key}' not found in service '{service}'")
-        
-        return self._secrets[service][key]
+    def move_to_processed(self, mail_path: Path) -> Path:
+        """Move processed mail to archive"""
+        dest = self.base_path / 'processed' / mail_path.name
+        mail_path.rename(dest)
+        logger.debug(f"Moved to processed: {mail_path.name}")
+        return dest
     
-    def get_imap_credentials(self) -> Dict[str, str]:
-        """Convenience method for IMAP credentials"""
-        return self.get('imap')
+    @staticmethod
+    def _sanitize_filename(filename: str) -> str:
+        """Remove/replace unsafe characters"""
+        unsafe_chars = '<>:"/\\|?*'
+        safe = filename
+        for char in unsafe_chars:
+            safe = safe.replace(char, '_')
+        return safe[:200]  # Limit length
     
-    def get_smtp_credentials(self) -> Dict[str, Any]:
-        """Convenience method for SMTP credentials"""
-        return self.get('smtp')
-    
-    def get_db_credentials(self) -> Dict[str, Any]:
-        """Convenience method for PostgreSQL credentials"""
-        return self.get('postgresql')
-
-# Global instance
-_credentials = None
-
-def get_credentials() -> CredentialManager:
-    """Get global credential manager instance"""
-    global _credentials
-    if _credentials is None:
-        _credentials = CredentialManager()
-    return _credentials
+    @staticmethod
+    def categorize_attachment(filename: str, mime_type: str = None) -> str:
+        """Determine storage category based on file type"""
+        ext = Path(filename).suffix.lower()
+        
+        image_exts = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        doc_exts = {'.pdf', '.doc', '.docx', '.txt', '.md', '.rtf'}
+        log_exts = {'.log', '.txt'}
+        
+        if ext in image_exts or (mime_type and mime_type.startswith('image/')):
+            return 'images'
+        elif ext in doc_exts or (mime_type and mime_type.startswith('application/')):
+            return 'documents'
+        elif ext in log_exts:
+            return 'logs'
+        else:
+            return 'documents'  # Default

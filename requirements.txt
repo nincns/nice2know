@@ -12,6 +12,9 @@ pillow>=10.4.0  # Python 3.13 compatible
 # Utilities
 python-dotenv>=1.0.0
 
+# HTTP Requests (für LLM APIs)
+requests>=2.31.0
+
 # PostgreSQL (für spätere Integration)
 psycopg2-binary>=2.9.9
 
