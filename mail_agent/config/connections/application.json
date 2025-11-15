@@ -1,0 +1,18 @@
+{
+  "app_name": "Nice2Know",
+  "version": "1.0.0",
+  "environment": "production",
+  "base_url": "https://nice2know.example.com",
+  "admin": {
+    "email": "admin@example.com",
+    "enable_registration": false
+  },
+  "storage": {
+    "base_path": "./storage",
+    "max_attachment_size_mb": 50
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/mail_agent.log"
+  }
+}
