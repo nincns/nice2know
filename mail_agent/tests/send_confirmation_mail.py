@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Nice2Know - Send Confirmation Mail
-Sends HTML confirmation mail to original sender with extracted knowledge
+Nice2Know - Send Confirmation Mail v2
+Improved version with better template filling and quality indicators
 """
 import sys
 import json
@@ -9,15 +9,13 @@ import smtplib
 from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.message import EmailMessage
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 import email
 from email import policy
 
 # Auto-detect mail_agent/ directory
 def find_mail_agent_root(start_path: Path) -> Path:
-    """Walk up directory tree to find mail_agent/ (has agents/, catalog/, storage/)"""
     current = start_path
     for _ in range(5):
         if (current / 'agents').exists() and \
@@ -32,8 +30,6 @@ def find_mail_agent_root(start_path: Path) -> Path:
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
-
-# Add to Python path for imports
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.credentials import get_credentials
@@ -42,12 +38,11 @@ from utils.analyze_json_quality import analyze_quality, get_field_status
 # Colors
 GREEN = '\033[0;32m'
 RED = '\033[0;31m'
-BLUE = '\033[0;34m'
 YELLOW = '\033[1;33m'
+BLUE = '\033[0;34m'
 NC = '\033[0m'
 
 def load_json_file(filepath: Path) -> Optional[Dict]:
-    """Load JSON file"""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -56,7 +51,6 @@ def load_json_file(filepath: Path) -> Optional[Dict]:
         return None
 
 def load_html_template(filepath: Path) -> Optional[str]:
-    """Load HTML template"""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
@@ -65,7 +59,6 @@ def load_html_template(filepath: Path) -> Optional[str]:
         return None
 
 def extract_mail_info(mail_path: Path) -> Dict[str, str]:
-    """Extract sender and subject from .eml file"""
     try:
         with open(mail_path, 'rb') as f:
             msg = email.message_from_binary_file(f, policy=policy.default)
@@ -73,254 +66,348 @@ def extract_mail_info(mail_path: Path) -> Dict[str, str]:
         sender = msg.get('From', 'unknown@example.com')
         subject = msg.get('Subject', 'No Subject')
         
-        # Extract email from "Name <email@domain.com>" format
         if '<' in sender and '>' in sender:
             sender_email = sender[sender.find('<')+1:sender.find('>')]
         else:
             sender_email = sender
         
-        return {
-            'sender': sender_email,
-            'subject': subject
-        }
+        return {'sender': sender_email, 'subject': subject}
     except Exception as e:
         print(f"{RED}✗ Failed to parse mail: {e}{NC}")
         return {'sender': 'unknown@example.com', 'subject': 'No Subject'}
 
-def fill_template(template: str, problem: Dict, solution: Dict, asset: Dict,
-                  mail_info: Dict, quality_analysis: Dict) -> str:
-    """Fill HTML template with data (simple string replacement) and quality indicators"""
+def build_quality_summary(quality: Dict) -> str:
+    """Build quality summary HTML"""
+    summary = quality['summary']
     
-    # Helper function to add status indicator
-    def add_status(field_name: str, value: str) -> str:
-        status = get_field_status(field_name, quality_analysis)
-        if status == 'complete':
-            return f'<span style="color: #4caf50;">✓</span> {value}'
-        elif status == 'missing':
-            return f'<span style="color: #ff9800;">⚠</span> <span style="color: #999;">{value or "[Nicht erkannt]"}</span>'
-        elif status == 'unclear':
-            return f'<span style="color: #2196f3;">❓</span> {value}'
-        return value
-    
-    template = template.replace('{{reporter_name}}',
-                               problem.get('reporter', {}).get('name', 'Benutzer'))
-    
-    # Add quality summary after intro
-    quality_html = f"""
-            <!-- Quality Summary -->
-            <div style="background-color: #e8f5e9; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <span style="font-size: 24px;">📊</span>
-                    <strong style="font-size: 16px;">Datenqualität: {quality_analysis['summary']['completeness_percent']}%</strong>
-                </div>
-                <div style="font-size: 14px; color: #666;">
-                    <span style="color: #4caf50;">✓ {quality_analysis['summary']['complete_count']} Felder vollständig</span> • 
-                    <span style="color: #ff9800;">⚠ {quality_analysis['summary']['missing_count']} fehlen</span> • 
-                    <span style="color: #2196f3;">❓ {quality_analysis['summary']['unclear_count']} unklar</span>
-                </div>
-                <div style="margin-top: 10px; font-size: 13px; color: #666; font-style: italic;">
-                    Fehlende oder unklare Felder sind unten markiert. Sie können diese über den Button korrigieren/ergänzen.
-                </div>
-            </div>
-    """
-    
-    # Insert quality summary into template (after intro section)
-    template = template.replace('</div>\n            \n            <!-- Problem Section -->',
-                               '</div>\n' + quality_html + '\n            <!-- Problem Section -->')
-    
-    template = template.replace('{{reporter_name}}',
-                               problem.get('reporter', {}).get('name', 'Benutzer'))
-    template = template.replace('{{problem_title}}',
-                               problem.get('problem', {}).get('title', 'N/A'))
-    template = template.replace('{{problem_description}}',
-                               problem.get('problem', {}).get('description', 'N/A'))
-    template = template.replace('{{problem_severity}}',
-                               problem.get('classification', {}).get('severity', 'medium'))
-    template = template.replace('{{problem_category}}',
-                               problem.get('classification', {}).get('category', 'N/A'))
-    template = template.replace('{{problem_status}}',
-                               problem.get('status', 'new'))
-    
-    # Symptoms list
-    symptoms = problem.get('problem', {}).get('symptoms', [])
-    symptoms_html = '\n'.join([f'<li>{s}</li>' for s in symptoms]) if symptoms else '<li>Keine Symptome erfasst</li>'
-    template = template.replace('{{#problem_symptoms}}\n                            <li>{{.}}</li>\n                            {{/problem_symptoms}}',
-                               symptoms_html)
-    
-    # Error messages (optional section)
-    error_messages = problem.get('problem', {}).get('error_messages', [])
-    if error_messages:
-        errors_html = '\n'.join([f'<li>{e}</li>' for e in error_messages])
-        template = template.replace('{{#problem_error_messages}}', '')
-        template = template.replace('{{/problem_error_messages}}', '')
-        template = template.replace('{{#problem_error_messages}}\n                            <li>{{.}}</li>\n                            {{/problem_error_messages}}',
-                                   errors_html)
-    else:
-        # Remove error messages section completely
-        import re
-        template = re.sub(r'{{#problem_error_messages}}.*?{{/problem_error_messages}}', '',
-                         template, flags=re.DOTALL)
-    
-    # Solution data
-    has_solution = solution and solution.get('solution', {}).get('steps', [])
-    
-    if has_solution:
-        template = template.replace('{{#has_solution}}', '')
-        template = template.replace('{{/has_solution}}', '')
+    # Build missing fields list with anchors
+    missing_html = ""
+    if quality['missing'] or quality['unclear']:
+        missing_items = []
         
-        template = template.replace('{{solution_title}}',
-                                   solution.get('solution', {}).get('title', 'N/A'))
-        template = template.replace('{{solution_description}}',
-                                   solution.get('solution', {}).get('description', 'N/A'))
-        template = template.replace('{{solution_type}}',
-                                   solution.get('solution', {}).get('type', 'N/A'))
-        template = template.replace('{{solution_approach}}',
-                                   solution.get('solution', {}).get('approach', 'N/A'))
-        template = template.replace('{{solution_complexity}}',
-                                   solution.get('metadata', {}).get('complexity', 'N/A'))
-        template = template.replace('{{solution_estimated_time}}',
-                                   solution.get('metadata', {}).get('estimated_time', 'N/A'))
+        # Map field names to user-friendly labels
+        field_labels = {
+            'reporter_department': ('Abteilung', '#problem'),
+            'affected_users': ('Betroffene Nutzer', '#problem'),
+            'solution_approach': ('Lösungsansatz', '#solution'),
+            'solution_complexity': ('Komplexität', '#solution'),
+            'asset_version': ('Software-Version', '#asset'),
+            'asset_platform': ('Plattform', '#asset'),
+            'asset_deployment': ('Deployment-Art', '#asset'),
+        }
+        
+        for field in quality['missing']:
+            if field in field_labels:
+                label, anchor = field_labels[field]
+                missing_items.append(f'<li><a href="{anchor}">{label}</a></li>')
+        
+        for field in quality['unclear']:
+            if field in field_labels:
+                label, anchor = field_labels[field]
+                missing_items.append(f'<li><a href="{anchor}">{label} (unklar)</a></li>')
+        
+        if missing_items:
+            missing_html = f"""
+            <div class="missing-fields">
+                <div class="missing-fields-title">Fehlende oder unklare Felder:</div>
+                <ul class="missing-fields-list">
+                    {''.join(missing_items)}
+                </ul>
+            </div>
+            """
+    
+    return f"""
+    <div class="quality-summary">
+        <div class="quality-header">
+            <span class="quality-icon">📊</span>
+            <div>
+                <div class="quality-title">Datenqualität</div>
+                <div class="quality-score">{summary['completeness_percent']}%</div>
+            </div>
+        </div>
+        <div class="quality-stats">
+            <span class="quality-stat complete">✓ {summary['complete_count']} Felder vollständig</span>
+            <span class="quality-stat missing">⚠ {summary['missing_count']} fehlen</span>
+            <span class="quality-stat unclear">❓ {summary['unclear_count']} unklar</span>
+        </div>
+        <p style="font-size: 13px; color: #666; font-style: italic;">
+            Fehlende oder unklare Felder sind unten markiert. Sie können diese über den Link ergänzen.
+        </p>
+        {missing_html}
+    </div>
+    """
+
+def build_field_html(label: str, value: str, field_name: str, quality: Dict) -> str:
+    """Build field HTML with status indicator"""
+    status = get_field_status(field_name, quality)
+    
+    if not value or value == 'null' or value == 'N/A':
+        value = "[Nicht erkannt]"
+        css_class = "missing"
+        indicator = '<span class="status-missing">⚠</span> '
+    elif status == 'complete':
+        css_class = ""
+        indicator = '<span class="status-complete">✓</span> '
+    elif status == 'unclear':
+        css_class = "unclear"
+        indicator = '<span class="status-unclear">❓</span> '
+    elif status == 'missing':
+        css_class = "missing"
+        value = "[Nicht erkannt]"
+        indicator = '<span class="status-missing">⚠</span> '
+    else:
+        css_class = ""
+        indicator = ""
+    
+    return f"""
+    <div class="field">
+        <div class="field-label">{label}</div>
+        <div class="field-value {css_class}">{indicator}{value}</div>
+    </div>
+    """
+
+def fill_template_v2(template: str, problem: Dict, solution: Dict, asset: Dict,
+                     mail_info: Dict, quality: Dict) -> str:
+    """Fill template with smart status indicators"""
+    
+    # Reporter name
+    reporter_name = problem.get('reporter', {}).get('name', 'Benutzer')
+    template = template.replace('{{reporter_name}}', reporter_name)
+    
+    # Quality Summary
+    quality_html = build_quality_summary(quality)
+    template = template.replace('{{QUALITY_SUMMARY}}', quality_html)
+    
+    # === PROBLEM FIELDS ===
+    prob = problem.get('problem', {})
+    reporter = problem.get('reporter', {})
+    
+    problem_fields = ""
+    problem_fields += build_field_html("Titel", prob.get('title', ''), 'problem_title', quality)
+    problem_fields += build_field_html("Beschreibung", prob.get('description', ''), 'problem_description', quality)
+    
+    # Symptoms
+    symptoms = prob.get('symptoms', [])
+    if symptoms:
+        symptoms_html = '\n'.join([f'<li>{s}</li>' for s in symptoms])
+        problem_fields += f"""
+        <div class="field">
+            <div class="field-label"><span class="status-complete">✓</span> Symptome</div>
+            <ul class="list-items">{symptoms_html}</ul>
+        </div>
+        """
+    
+    # Department (often missing)
+    problem_fields += build_field_html("Abteilung", reporter.get('department', ''), 'reporter_department', quality)
+    
+    template = template.replace('{{PROBLEM_FIELDS}}', problem_fields)
+    
+    # Problem Meta
+    classification = problem.get('classification', {})
+    problem_meta = f"""
+    <div class="meta-item">
+        <div class="meta-label">Schweregrad</div>
+        <div class="meta-value">
+            <span class="badge badge-severity-{classification.get('severity', 'medium')}">{classification.get('severity', 'medium').upper()}</span>
+        </div>
+    </div>
+    <div class="meta-item">
+        <div class="meta-label">Kategorie</div>
+        <div class="meta-value">{classification.get('category', 'N/A')}</div>
+    </div>
+    <div class="meta-item">
+        <div class="meta-label">Status</div>
+        <div class="meta-value">
+            <span class="badge badge-status-{problem.get('status', 'new')}">{problem.get('status', 'new').upper()}</span>
+        </div>
+    </div>
+    """
+    template = template.replace('{{PROBLEM_META}}', problem_meta)
+    
+    # === SOLUTION SECTION ===
+    sol = solution.get('solution', {})
+    metadata = solution.get('metadata', {})
+    steps = sol.get('steps', [])
+    
+    if steps and len(steps) > 0:
+        solution_fields = ""
+        solution_fields += build_field_html("Titel", sol.get('title', ''), 'solution_title', quality)
+        solution_fields += build_field_html("Beschreibung", sol.get('description', ''), 'solution_description', quality)
         
         # Prerequisites (optional)
-        prereqs = solution.get('solution', {}).get('prerequisites', [])
+        prereqs = sol.get('prerequisites', [])
         if prereqs:
-            prereqs_html = '\n'.join([f'<li>{p}</li>' for p in prereqs])
-            template = template.replace('{{#solution_prerequisites}}', '')
-            template = template.replace('{{/solution_prerequisites}}', '')
-            template = template.replace('{{#solution_prerequisites}}\n                            <li>{{.}}</li>\n                            {{/solution_prerequisites}}',
-                                       prereqs_html)
-        else:
-            import re
-            template = re.sub(r'{{#solution_prerequisites}}.*?{{/solution_prerequisites}}', '',
-                             template, flags=re.DOTALL)
+            prereq_html = '\n'.join([f'<li>{p}</li>' for p in prereqs])
+            solution_fields += f"""
+            <div class="field">
+                <div class="field-label">Voraussetzungen</div>
+                <ul class="list-items">{prereq_html}</ul>
+            </div>
+            """
         
         # Steps
-        steps = solution.get('solution', {}).get('steps', [])
-        steps_html = ''
+        steps_html = ""
         for step in steps:
-            step_html = '<div class="step">'
-            step_html += f'<div class="step-action">{step.get("action", "N/A")}</div>'
-            step_html += f'<div class="step-details">{step.get("details", "N/A")}</div>'
+            step_html = f"""
+            <div class="step">
+                <div class="step-action">{step.get('action', 'N/A')}</div>
+                <div class="step-details">{step.get('details', '')}</div>
+            """
             if step.get('command'):
                 step_html += f'<div class="step-command">{step["command"]}</div>'
-            step_html += f'<div class="step-result">✓ Erwartetes Ergebnis: {step.get("expected_result", "N/A")}</div>'
-            step_html += '</div>'
+            step_html += f"""
+                <div class="step-result">✓ Erwartetes Ergebnis: {step.get('expected_result', 'N/A')}</div>
+            </div>
+            """
             steps_html += step_html
         
-        template = template.replace('{{#solution_steps}}\n                            <div class="step">\n                                <div class="step-action">{{action}}</div>\n                                <div class="step-details">{{details}}</div>\n                                {{#command}}\n                                <div class="step-command">{{command}}</div>\n                                {{/command}}\n                                <div class="step-result">✓ Erwartetes Ergebnis: {{expected_result}}</div>\n                            </div>\n                            {{/solution_steps}}',
-                                   steps_html)
+        solution_fields += f"""
+        <div class="field">
+            <div class="field-label"><span class="status-complete">✓</span> Lösungsschritte</div>
+            <div class="steps">{steps_html}</div>
+        </div>
+        """
         
-        # Tags (optional)
-        tags = solution.get('tags', [])
-        if tags:
-            tags_html = '\n'.join([f'<span class="tag">{t}</span>' for t in tags])
-            template = template.replace('{{#solution_tags}}', '')
-            template = template.replace('{{/solution_tags}}', '')
-            template = template.replace('{{#solution_tags}}\n                            <span class="tag">{{.}}</span>\n                            {{/solution_tags}}',
-                                       tags_html)
+        # Solution Meta
+        solution_meta = f"""
+        <div class="meta-item">
+            <div class="meta-label">Typ</div>
+            <div class="meta-value">{sol.get('type', 'N/A')}</div>
+        </div>
+        """
+        
+        # Approach with status
+        approach = sol.get('approach')
+        if not approach or approach == 'N/A':
+            solution_meta += f"""
+            <div class="meta-item">
+                <div class="meta-label">Ansatz</div>
+                <div class="meta-value"><span class="status-missing">⚠</span> [Nicht erkannt]</div>
+            </div>
+            """
         else:
-            import re
-            template = re.sub(r'{{#solution_tags}}.*?{{/solution_tags}}', '',
-                             template, flags=re.DOTALL)
+            solution_meta += f"""
+            <div class="meta-item">
+                <div class="meta-label">Ansatz</div>
+                <div class="meta-value"><span class="status-complete">✓</span> {approach}</div>
+            </div>
+            """
+        
+        solution_meta += f"""
+        <div class="meta-item">
+            <div class="meta-label">Komplexität</div>
+            <div class="meta-value">{metadata.get('complexity', 'N/A')}</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">Geschätzte Zeit</div>
+            <div class="meta-value">{metadata.get('estimated_time', 'N/A')}</div>
+        </div>
+        """
+        
+        solution_section = f"""
+        <div class="section" id="solution">
+            <div class="section-header">
+                <span class="section-icon">✅</span>
+                <span class="section-title">Lösung</span>
+            </div>
+            <div class="section-body">
+                {solution_fields}
+                <div class="meta-info">
+                    {solution_meta}
+                </div>
+            </div>
+        </div>
+        """
     else:
-        # Remove solution section completely
-        import re
-        template = re.sub(r'{{#has_solution}}.*?{{/has_solution}}', '',
-                         template, flags=re.DOTALL)
+        solution_section = ""
     
-    # Asset data
-    template = template.replace('{{asset_name}}',
-                               asset.get('asset', {}).get('display_name',
-                                  asset.get('asset', {}).get('name', 'N/A')))
-    template = template.replace('{{asset_description}}',
-                               asset.get('asset', {}).get('description', 'N/A'))
-    template = template.replace('{{asset_type}}',
-                               asset.get('asset', {}).get('type', 'N/A'))
-    template = template.replace('{{asset_category}}',
-                               asset.get('asset', {}).get('category', 'N/A'))
-    template = template.replace('{{asset_criticality}}',
-                               asset.get('asset', {}).get('criticality', 'N/A'))
-    template = template.replace('{{asset_status}}',
-                               asset.get('asset', {}).get('status', 'N/A'))
+    template = template.replace('{{SOLUTION_SECTION}}', solution_section)
     
-    # Technical details with status indicators
-    software = asset.get('technical', {}).get('software')
-    version = asset.get('technical', {}).get('version')
-    platform = asset.get('technical', {}).get('platform')
+    # === ASSET FIELDS ===
+    ast = asset.get('asset', {})
+    technical = asset.get('technical', {})
     
-    # Add status for version/platform
-    version_status = get_field_status('asset_version', quality_analysis)
-    platform_status = get_field_status('asset_platform', quality_analysis)
+    asset_fields = ""
+    asset_name = ast.get('display_name') or ast.get('name', 'N/A')
+    asset_fields += build_field_html("Name", asset_name, 'asset_name', quality)
+    asset_fields += build_field_html("Beschreibung", ast.get('description', ''), 'asset_description', quality)
     
-    if version_status == 'missing':
-        version = '<span style="color: #ff9800;">⚠ Nicht erkannt</span>'
-    if platform_status == 'missing':
-        platform = '<span style="color: #ff9800;">⚠ Nicht erkannt</span>'
+    template = template.replace('{{ASSET_FIELDS}}', asset_fields)
     
-    # Technical details (optional)
-    software = asset.get('technical', {}).get('software')
+    # Asset Meta
+    asset_meta = f"""
+    <div class="meta-item">
+        <div class="meta-label">Typ</div>
+        <div class="meta-value">{ast.get('type', 'N/A')}</div>
+    </div>
+    <div class="meta-item">
+        <div class="meta-label">Kategorie</div>
+        <div class="meta-value">{ast.get('category', 'N/A')}</div>
+    </div>
+    <div class="meta-item">
+        <div class="meta-label">Kritikalität</div>
+        <div class="meta-value">{ast.get('criticality', 'N/A')}</div>
+    </div>
+    <div class="meta-item">
+        <div class="meta-label">Status</div>
+        <div class="meta-value">{ast.get('status', 'N/A')}</div>
+    </div>
+    """
+    template = template.replace('{{ASSET_META}}', asset_meta)
+    
+    # Technical Details
+    software = technical.get('software')
+    version = technical.get('version')
+    platform = technical.get('platform')
+    
     if software:
-        template = template.replace('{{#asset_software}}', '')
-        template = template.replace('{{/asset_software}}', '')
-        template = template.replace('{{asset_software}}', software)
+        tech_html = '<div class="field" style="margin-top: 15px;"><div class="field-label">Technische Details</div><div class="meta-info">'
         
-        version = asset.get('technical', {}).get('version')
+        tech_html += f'<div class="meta-item"><div class="meta-label">Software</div><div class="meta-value"><span class="status-complete">✓</span> {software}</div></div>'
+        
         if version:
-            template = template.replace('{{#asset_version}}', '')
-            template = template.replace('{{/asset_version}}', '')
-            template = template.replace('{{asset_version}}', version)
+            tech_html += f'<div class="meta-item"><div class="meta-label">Version</div><div class="meta-value"><span class="status-complete">✓</span> {version}</div></div>'
         else:
-            import re
-            template = re.sub(r'{{#asset_version}}.*?{{/asset_version}}', '',
-                             template, flags=re.DOTALL)
+            tech_html += '<div class="meta-item"><div class="meta-label">Version</div><div class="meta-value"><span class="status-missing">⚠</span> [Nicht erkannt]</div></div>'
         
-        platform = asset.get('technical', {}).get('platform')
         if platform:
-            template = template.replace('{{#asset_platform}}', '')
-            template = template.replace('{{/asset_platform}}', '')
-            template = template.replace('{{asset_platform}}', platform)
+            tech_html += f'<div class="meta-item"><div class="meta-label">Plattform</div><div class="meta-value"><span class="status-complete">✓</span> {platform}</div></div>'
         else:
-            import re
-            template = re.sub(r'{{#asset_platform}}.*?{{/asset_platform}}', '',
-                             template, flags=re.DOTALL)
+            tech_html += '<div class="meta-item"><div class="meta-label">Plattform</div><div class="meta-value"><span class="status-missing">⚠</span> [Nicht erkannt]</div></div>'
+        
+        tech_html += '</div></div>'
     else:
-        import re
-        template = re.sub(r'{{#asset_software}}.*?{{/asset_software}}', '',
-                         template, flags=re.DOTALL)
+        tech_html = ""
+    
+    template = template.replace('{{ASSET_TECHNICAL}}', tech_html)
     
     # Footer data
-    template = template.replace('{{magic_link}}', '#')  # TODO: Generate actual link
-    template = template.replace('{{confirm_link}}', '#')  # TODO: Generate actual link
+    template = template.replace('{{magic_link}}', '#edit')  # TODO: Generate actual link
+    template = template.replace('{{confirm_link}}', '#confirm')  # TODO: Generate actual link
     template = template.replace('{{support_email}}', 'support@example.com')  # TODO: From config
     template = template.replace('{{case_id}}', problem.get('id', 'N/A'))
-    template = template.replace('{{created_at}}',
-                               datetime.now().strftime('%Y-%m-%d %H:%M'))
+    template = template.replace('{{created_at}}', datetime.now().strftime('%Y-%m-%d %H:%M'))
     template = template.replace('{{mail_id}}', problem.get('mail_id', 'N/A'))
     
     return template
 
 def send_mail(recipient: str, subject: str, html_body: str) -> bool:
-    """Send HTML email via SMTP"""
     try:
         creds = get_credentials()
         smtp_config = creds.get_smtp_credentials()
         
-        # Create message
         msg = MIMEMultipart('alternative')
         msg['From'] = smtp_config.get('username', 'noreply@example.com')
         msg['To'] = recipient
         msg['Subject'] = f"Re: {subject}"
         
-        # Plain text fallback
         text_body = "Bitte öffnen Sie diese E-Mail in einem HTML-fähigen E-Mail-Client."
         
-        # Attach parts
         part1 = MIMEText(text_body, 'plain', 'utf-8')
         part2 = MIMEText(html_body, 'html', 'utf-8')
         msg.attach(part1)
         msg.attach(part2)
         
-        # Connect and send
         smtp_server = smtp_config.get('host', 'localhost')
         smtp_port = smtp_config.get('port', 587)
         smtp_user = smtp_config.get('username')
@@ -335,30 +422,27 @@ def send_mail(recipient: str, subject: str, html_body: str) -> bool:
             server.send_message(msg)
         
         return True
-        
     except Exception as e:
         print(f"{RED}✗ Failed to send mail: {e}{NC}")
         return False
 
 def main():
     print(f"{BLUE}{'=' * 60}{NC}")
-    print(f"{BLUE}Nice2Know - Send Confirmation Mail{NC}")
+    print(f"{BLUE}Nice2Know - Send Confirmation Mail v2{NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Working directory: {WORKING_DIR}\n")
     
-    # Paths
     processed_dir = WORKING_DIR / 'storage' / 'processed'
     if not processed_dir.exists():
         print(f"{RED}✗ Processed directory not found{NC}")
         sys.exit(1)
     
-    # Find matching JSON files (same timestamp)
+    # Find latest
     json_files = list(processed_dir.glob('*_problem.json'))
     if not json_files:
         print(f"{RED}✗ No problem JSON files found{NC}")
         sys.exit(1)
     
-    # Use most recent
     latest_problem = sorted(json_files, key=lambda p: p.stem)[-1]
     timestamp = '_'.join(latest_problem.stem.split('_')[:2])
     
@@ -382,32 +466,30 @@ def main():
     if not asset:
         sys.exit(1)
     
-    # Load mail for sender/subject
+    # Load mail
     mail_dir = WORKING_DIR / 'storage' / 'mails'
     mail_files = list(mail_dir.glob(f"{timestamp}_*.eml"))
-    if not mail_files:
-        print(f"{YELLOW}⚠ No mail file found for timestamp{NC}")
-        mail_info = {'sender': 'test@example.com', 'subject': 'Test'}
+    if mail_files:
+        mail_info = extract_mail_info(mail_files[0])
+        print(f"Loading mail: {mail_files[0].name}")
     else:
-        mail_path = mail_files[0]
-        print(f"Loading mail: {mail_path.name}")
-        mail_info = extract_mail_info(mail_path)
+        print(f"{YELLOW}⚠ No mail file found{NC}")
+        mail_info = {'sender': 'test@example.com', 'subject': 'Test'}
     
-    print(f"{GREEN}✓ Data loaded{NC}")
+    print(f"\n{GREEN}✓ Data loaded{NC}")
     print(f"  Recipient: {mail_info['sender']}")
     print(f"  Subject: Re: {mail_info['subject']}\n")
     
-    # Analyze JSON quality
+    # Analyze quality
     print("Analyzing JSON quality...")
     quality_analysis = analyze_quality(problem, solution, asset)
     
     print(f"  ✓ Complete: {quality_analysis['summary']['complete_count']}")
     print(f"  ⚠ Missing:  {quality_analysis['summary']['missing_count']}")
     print(f"  ❓ Unclear:  {quality_analysis['summary']['unclear_count']}")
-    print(f"  Overall:    {quality_analysis['summary']['completeness_percent']}%")
-    print()
+    print(f"  Overall:    {quality_analysis['summary']['completeness_percent']}%\n")
     
-    # Load HTML template
+    # Load template
     template_path = WORKING_DIR / 'catalog' / 'mail' / 'added_knowledge_mail.html'
     print(f"Loading template: {template_path.name}")
     template = load_html_template(template_path)
@@ -416,7 +498,7 @@ def main():
     
     # Fill template
     print("Filling template with data...")
-    html_body = fill_template(template, problem, solution, asset, mail_info, quality_analysis)
+    html_body = fill_template_v2(template, problem, solution, asset, mail_info, quality_analysis)
     
     print(f"{GREEN}✓ Template filled ({len(html_body)} chars){NC}\n")
     
