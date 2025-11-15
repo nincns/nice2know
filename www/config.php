@@ -24,8 +24,8 @@ function find_mail_agent_root($start_path) {
     return $start_path;
 }
 
-// Define base paths
-define('MAIL_AGENT_ROOT', find_mail_agent_root(__DIR__));
+// Define base paths - HARDCODED for www/ directory
+define('MAIL_AGENT_ROOT', '/opt/nice2know/mail_agent');
 define('STORAGE_DIR', MAIL_AGENT_ROOT . '/storage');
 define('PROCESSED_DIR', STORAGE_DIR . '/processed');
 define('SENT_DIR', STORAGE_DIR . '/sent');
