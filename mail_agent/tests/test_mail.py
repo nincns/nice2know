@@ -21,13 +21,14 @@ NC = '\033[0m'  # No Color
 
 def load_config():
     """Load configuration from mail_config.json and secrets.json"""
-    # Script is in tests/, config is in parent directory under connections/
+    # Script is in tests/, config is in parent directory
     script_dir = Path(__file__).resolve().parent
-    config_dir = script_dir.parent / 'config' / 'connections'
+    config_base_dir = script_dir.parent / 'config'
     
-    # Load mail_config.json
-    mail_config_path = config_dir / 'mail_config.json'
-    secrets_path = config_dir / 'secrets.json'
+    # mail_config.json is in config/connections/
+    mail_config_path = config_base_dir / 'connections' / 'mail_config.json'
+    # secrets.json is in config/
+    secrets_path = config_base_dir / 'secrets.json'
     
     if not mail_config_path.exists():
         print(f"{RED}✗ mail_config.json not found at {mail_config_path}!{NC}")
