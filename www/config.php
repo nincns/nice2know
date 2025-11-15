@@ -47,7 +47,7 @@ define('ALLOWED_ORIGINS', '*'); // TODO: Restrict in production
 
 // File settings
 // JSON_PRETTY_PRINT is already a PHP constant, don't redefine
-define('JSON_OPTIONS', JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); JSON_UNESCAPED_SLASHES);
+define('JSON_OPTIONS', JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Verify critical directories exist
 function verify_directories() {
