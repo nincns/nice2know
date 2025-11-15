@@ -1,0 +1,16 @@
+{
+  "imap": {
+    "host": "mail.example.com",
+    "port": 993,
+    "use_ssl": true,
+    "mailbox": "INBOX"
+  },
+  "smtp": {
+    "host": "mail.example.com",
+    "port": 587,
+    "use_ssl": false,
+    "use_starttls": true,
+    "from_address": "support@example.com",
+    "from_name": "Nice2Know System"
+  }
+}
