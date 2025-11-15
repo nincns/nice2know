@@ -1,0 +1,22 @@
+# Nice2Know Mail Agent - Python Dependencies
+
+# IMAP & Mail Parsing
+imapclient==3.0.1
+email-validator==2.1.0
+
+# File Handling
+python-magic==0.4.27
+pillow==10.1.0
+
+# Utilities
+python-dotenv==1.0.0
+
+# PostgreSQL (later)
+# psycopg2-binary==2.9.9
+
+# Optional: OCR Support
+# pytesseract==0.3.10
+
+# Optional: PDF Processing
+# PyPDF2==3.0.1
+# pdfplumber==0.10.3
