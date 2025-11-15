@@ -137,16 +137,11 @@ class IMAPFetcher:
     def move_to_folder(self, message_id: str, target_folder: str = 'processed'):
         """Move message to another IMAP folder"""
         try:
-            # Ensure folder exists
-            self._ensure_folder(target_folder)
-            
             # Copy to target folder
             result = self.connection.copy(message_id, target_folder)
             if result[0] == 'OK':
-                # Mark original as deleted
+                # Mark original as deleted (but don't expunge yet)
                 self.connection.store(message_id, '+FLAGS', '\\Deleted')
-                # Expunge to actually delete
-                self.connection.expunge()
                 logger.info(f"Moved message {message_id} to '{target_folder}'")
                 return True
             else:
@@ -155,6 +150,14 @@ class IMAPFetcher:
         except Exception as e:
             logger.error(f"Failed to move message {message_id}: {e}")
             return False
+    
+    def expunge_deleted(self):
+        """Permanently remove messages marked as deleted"""
+        try:
+            self.connection.expunge()
+            logger.info("✓ Expunged deleted messages")
+        except Exception as e:
+            logger.warning(f"Failed to expunge: {e}")
     
     def _ensure_folder(self, folder_name: str):
         """Create IMAP folder if it doesn't exist"""
