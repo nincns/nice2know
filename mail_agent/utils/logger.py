@@ -21,7 +21,7 @@ class N2KLogger:
             return
         
         # Load config
-        config_path = Path(__file__).parent.parent / 'config' / 'mail_config.json'
+        config_path = Path(__file__).parent.parent / 'config' / 'connections' / 'mail_config.json'
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         
