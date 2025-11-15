@@ -58,10 +58,25 @@ if (!validate_mail_id($mail_id)) {
 
 debug_log("Saving data for mail_id", $mail_id);
 
-// Build file paths
-$problem_file = PROCESSED_DIR . "/{$mail_id}_problem.json";
-$solution_file = PROCESSED_DIR . "/{$mail_id}_solution.json";
-$asset_file = PROCESSED_DIR . "/{$mail_id}_asset.json";
+// Helper function to find existing file location
+function find_existing_file($mail_id, $filename) {
+    $directories = [PROCESSED_DIR, SENT_DIR];
+    
+    foreach ($directories as $dir) {
+        $filepath = $dir . "/{$mail_id}_{$filename}.json";
+        if (file_exists($filepath)) {
+            return $filepath;
+        }
+    }
+    
+    // If not found, default to PROCESSED_DIR for new saves
+    return PROCESSED_DIR . "/{$mail_id}_{$filename}.json";
+}
+
+// Find existing file paths or create new ones
+$problem_file = find_existing_file($mail_id, 'problem');
+$solution_file = find_existing_file($mail_id, 'solution');
+$asset_file = find_existing_file($mail_id, 'asset');
 
 // Create backup directory if it doesn't exist
 $backup_dir = STORAGE_DIR . '/backups';
