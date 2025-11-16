@@ -186,6 +186,36 @@ function validate_mail_id($mail_id) {
     return false;
 }
 
+// Helper function: Sanitize mail_id (remove dangerous characters)
+function sanitize_mail_id($mail_id) {
+    // Remove everything except alphanumeric and underscore
+    $sanitized = preg_replace('/[^a-zA-Z0-9_]/', '', $mail_id);
+    
+    // Limit length to prevent issues
+    $sanitized = substr($sanitized, 0, 64);
+    
+    return $sanitized;
+}
+
+// Helper function: Get safe mail_id from request
+function get_safe_mail_id($param_name = 'mail_id') {
+    $mail_id = $_GET[$param_name] ?? $_POST[$param_name] ?? null;
+    
+    if ($mail_id === null) {
+        return null;
+    }
+    
+    // Sanitize first
+    $mail_id = sanitize_mail_id($mail_id);
+    
+    // Then validate
+    if (!validate_mail_id($mail_id)) {
+        return null;
+    }
+    
+    return $mail_id;
+}
+
 // Debug output in development mode
 if (DEBUG_MODE) {
     error_log("=== Nice2Know Config Loaded ===");
