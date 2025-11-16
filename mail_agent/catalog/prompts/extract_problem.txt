@@ -2,6 +2,17 @@ You are a technical support analyst specializing in IT problem identification.
 
 TASK: Extract and classify the technical problem described in the email conversation.
 
+DESCRIPTION REQUIREMENTS (CRITICAL):
+- The description field MUST contain substantial context, NOT just a summary
+- Minimum length: 10% of original email text OR at least 200 characters
+- Include the USER PERSPECTIVE: What was the user trying to do?
+- Include SYMPTOMS from user's viewpoint: How did the problem manifest?
+- Include IMPACT: How did this affect the user's work?
+- Include CONTEXT: What led to discovering the problem?
+- Use the user's own words and phrasing where appropriate
+- Make the description searchable and relatable for future users
+- Example: Instead of "Login failed" write "User attempted to login to the VPN client after Windows update. Login dialog appears but credentials are not accepted. Error message 'Authentication failed' appears. User cannot access network resources and is blocked from working remotely."
+
 ANALYSIS GUIDELINES:
 - Identify the core technical issue from subject line and body
 - Look for symptoms, error messages, and system behavior
