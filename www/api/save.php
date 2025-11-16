@@ -1,165 +1,114 @@
-<?php
-/**
- * Nice2Know - Save API (Python-Only)
- * Always uses Python to save files (no PHP write attempts)
- *
- * POST /api/save.php
- * Body: {
- *   "mail_id": "575496876c3645bc8bf5f79c1696c134",
- *   "problem": {...},
- *   "solution": {...},
- *   "asset": {...}
- * }
- */
+#!/usr/bin/env python3
+"""
+Nice2Know - Process Export Files
+Reads edited data from export/ and updates processed/ JSONs
 
-require_once '../config.php';
+Usage:
+  python process_exports.py
+"""
+import json
+from pathlib import Path
+from datetime import datetime
 
-// Handle CORS preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header('Access-Control-Allow-Origin: ' . ALLOWED_ORIGINS);
-    header('Access-Control-Allow-Methods: POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type');
-    http_response_code(200);
-    exit;
-}
+def find_mail_agent_root(start_path: Path) -> Path:
+    """Find mail_agent root directory"""
+    current = start_path
+    for _ in range(5):
+        if (current / 'agents').exists() and \
+           (current / 'catalog').exists() and \
+           (current / 'config').exists():
+            return current
+        if current.parent != current:
+            current = current.parent
+    return start_path.parent if (start_path.parent / 'agents').exists() else start_path
 
-// Only allow POST requests
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    send_error('Method not allowed. Use POST.', 405);
-}
+def load_application_config(mail_agent_root: Path) -> dict:
+    """Load application configuration"""
+    config_file = mail_agent_root / 'config' / 'connections' / 'application.json'
+    with open(config_file, 'r') as f:
+        return json.load(f)
 
-// Get JSON input
-$input = file_get_contents('php://input');
-$data = json_decode($input, true);
+def get_storage_base(config: dict, mail_agent_root: Path) -> Path:
+    """Get storage base path"""
+    base_path = config.get('storage', {}).get('base_path', './storage')
+    if not Path(base_path).is_absolute():
+        storage_base = mail_agent_root / base_path
+    else:
+        storage_base = Path(base_path)
+    return storage_base.resolve()
 
-if (json_last_error() !== JSON_ERROR_NONE) {
-    send_error('Invalid JSON: ' . json_last_error_msg());
-}
-
-// Validate required fields
-if (empty($data['mail_id'])) {
-    send_error('Missing required field: mail_id');
-}
-
-if (empty($data['problem'])) {
-    send_error('Missing required field: problem');
-}
-
-if (empty($data['asset'])) {
-    send_error('Missing required field: asset');
-}
-
-// Sanitize and validate mail_id
-$mail_id = sanitize_mail_id($data['mail_id']);
-
-if (!validate_mail_id($mail_id)) {
-    send_error('Invalid mail_id format');
-}
-
-debug_log("Saving data via Python for mail_id", $mail_id);
-
-// Convert hex mail_id to timestamp (for response info)
-$timestamp = find_timestamp_from_mail_id($mail_id);
-
-if ($timestamp === null) {
-    send_error('Mail ID not found: ' . $mail_id, 404);
-}
-
-// Save via Python (always, no PHP write attempt)
-$python_result = save_via_python($mail_id, $data);
-
-if ($python_result['success']) {
-    send_success([
-        'mail_id' => $mail_id,
-        'timestamp' => $timestamp,
-        'saved_at' => date('Y-m-d H:i:s'),
-        'method' => 'python',
-        'output' => $python_result['output']
-    ], 'Data saved successfully via Python');
-} else {
-    send_error('Failed to save: ' . $python_result['error'], 500);
-}
-
-/**
- * Save files using Python script
- */
-function save_via_python($mail_id, $data) {
-    // Create temp files for JSON data
-    $temp_dir = sys_get_temp_dir();
-    $temp_problem = $temp_dir . '/n2k_problem_' . uniqid() . '.json';
-    $temp_solution = $temp_dir . '/n2k_solution_' . uniqid() . '.json';
-    $temp_asset = $temp_dir . '/n2k_asset_' . uniqid() . '.json';
+def process_export(export_file: Path, processed_dir: Path):
+    """Process a single export file"""
+    print(f"\nProcessing: {export_file.name}")
     
-    // Write temp files (PHP can write to /tmp)
-    file_put_contents($temp_problem, json_encode($data['problem'], JSON_OPTIONS));
-    file_put_contents($temp_solution, json_encode($data['solution'] ?? null, JSON_OPTIONS));
-    file_put_contents($temp_asset, json_encode($data['asset'], JSON_OPTIONS));
+    # Load export data
+    with open(export_file, 'r') as f:
+        export_data = json.load(f)
     
-    // Path to Python script
-    $python_script = MAIL_AGENT_ROOT . '/utils/save_json.py';
+    timestamp = export_data['timestamp']
     
-    if (!file_exists($python_script)) {
-        // Cleanup temp files
-        @unlink($temp_problem);
-        @unlink($temp_solution);
-        @unlink($temp_asset);
-        
-        return [
-            'success' => false,
-            'error' => 'Python save script not found: ' . $python_script
-        ];
-    }
+    # Target files
+    problem_file = processed_dir / f"{timestamp}_problem.json"
+    solution_file = processed_dir / f"{timestamp}_solution.json"
+    asset_file = processed_dir / f"{timestamp}_asset.json"
     
-    // Determine which Python to use
-    // Try to use the venv Python if available
-    $python_paths = [
-        '/opt/nice2know/venv/bin/python3',  // venv
-        '/usr/bin/python3',                  // system
-        'python3'                            // PATH
-    ];
+    # Update files
+    with open(problem_file, 'w', encoding='utf-8') as f:
+        json.dump(export_data['problem'], f, indent=2, ensure_ascii=False)
+    print(f"  ✓ Updated: {problem_file.name}")
     
-    $python_cmd = 'python3';
-    foreach ($python_paths as $path) {
-        if (file_exists($path)) {
-            $python_cmd = $path;
-            break;
-        }
-    }
+    if export_data.get('solution'):
+        with open(solution_file, 'w', encoding='utf-8') as f:
+            json.dump(export_data['solution'], f, indent=2, ensure_ascii=False)
+        print(f"  ✓ Updated: {solution_file.name}")
     
-    // Build command
-    $cmd = sprintf(
-        '%s %s %s %s %s %s 2>&1',
-        escapeshellarg($python_cmd),
-        escapeshellarg($python_script),
-        escapeshellarg($mail_id),
-        escapeshellarg($temp_problem),
-        escapeshellarg($temp_solution),
-        escapeshellarg($temp_asset)
-    );
+    with open(asset_file, 'w', encoding='utf-8') as f:
+        json.dump(export_data['asset'], f, indent=2, ensure_ascii=False)
+    print(f"  ✓ Updated: {asset_file.name}")
     
-    debug_log("Executing Python command", $cmd);
+    # Archive export file
+    archive_dir = export_file.parent / 'archive'
+    archive_dir.mkdir(exist_ok=True)
     
-    $output = [];
-    $return_code = 0;
-    exec($cmd, $output, $return_code);
+    archive_file = archive_dir / f"{export_file.stem}_{datetime.now().strftime('%Y%m%d%H%M%S')}.json"
+    export_file.rename(archive_file)
+    print(f"  ✓ Archived: {archive_file.name}")
+
+def main():
+    # Setup
+    script_dir = Path(__file__).resolve().parent
+    mail_agent_root = find_mail_agent_root(script_dir)
+    config = load_application_config(mail_agent_root)
+    storage_base = get_storage_base(config, mail_agent_root)
     
-    // Cleanup temp files
-    @unlink($temp_problem);
-    @unlink($temp_solution);
-    @unlink($temp_asset);
+    export_dir = storage_base / 'export'
+    processed_dir = storage_base / 'processed'
     
-    if ($return_code !== 0) {
-        $error_msg = implode("\n", $output);
-        debug_log("Python save failed", $error_msg);
-        return [
-            'success' => false,
-            'error' => $error_msg
-        ];
-    }
+    print("=" * 60)
+    print("Nice2Know - Process Export Files")
+    print("=" * 60)
+    print(f"Export Dir:    {export_dir}")
+    print(f"Processed Dir: {processed_dir}")
     
-    return [
-        'success' => true,
-        'output' => $output
-    ];
-}
-?>
+    # Find export files
+    export_files = list(export_dir.glob('*_edited.json'))
+    
+    if not export_files:
+        print("\nNo export files found.")
+        return
+    
+    print(f"\nFound {len(export_files)} export file(s)")
+    
+    # Process each
+    for export_file in export_files:
+        try:
+            process_export(export_file, processed_dir)
+        except Exception as e:
+            print(f"  ✗ Error: {e}")
+    
+    print("\n" + "=" * 60)
+    print("Processing complete!")
+    print("=" * 60)
+
+if __name__ == '__main__':
+    main()
