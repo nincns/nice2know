@@ -5,6 +5,7 @@ Nice2Know Mail Agent - Main Runner
 import json
 import sys
 import argparse
+import time
 from pathlib import Path
 from agents.imap_fetcher import IMAPFetcher
 from agents.mail_parser import MailParser
@@ -14,9 +15,25 @@ from utils.file_handler import FileHandler
 
 logger = get_logger()
 
+def find_mail_agent_root(start_path: Path) -> Path:
+    """Find mail_agent root directory"""
+    current = start_path
+    for _ in range(5):
+        if (current / 'agents').exists() and \
+           (current / 'catalog').exists() and \
+           (current / 'storage').exists():
+            return current
+        if current.parent != current:
+            current = current.parent
+        else:
+            break
+    return start_path
+
 def load_config(config_path: str = None) -> dict:
     """Load mail agent configuration"""
-    config_dir = Path(__file__).parent / 'config' / 'connections'
+    script_dir = Path(__file__).resolve().parent
+    mail_agent_root = find_mail_agent_root(script_dir)
+    config_dir = mail_agent_root / 'config' / 'connections'
     
     # Load mail connection config
     if not config_path:
@@ -24,20 +41,41 @@ def load_config(config_path: str = None) -> dict:
     else:
         mail_config_path = Path(config_path)
     
+    if not mail_config_path.exists():
+        logger.error(f"Mail config not found: {mail_config_path}")
+        sys.exit(1)
+    
     with open(mail_config_path, 'r', encoding='utf-8') as f:
         mail_config = json.load(f)
     
     # Load application config for storage/logging/processing settings
     app_config_path = config_dir / 'application.json'
+    
+    if not app_config_path.exists():
+        logger.error(f"Application config not found: {app_config_path}")
+        sys.exit(1)
+    
     with open(app_config_path, 'r', encoding='utf-8') as f:
         app_config = json.load(f)
+    
+    # Resolve storage base_path (handle relative paths)
+    storage_base_path = app_config.get('storage', {}).get('base_path', './storage')
+    
+    if not Path(storage_base_path).is_absolute():
+        # Relative path - resolve from mail_agent_root
+        storage_base_path = str(mail_agent_root / storage_base_path)
     
     # Merge configs: mail connection settings + application settings
     config = {
         'imap': mail_config.get('imap', {}),
         'smtp': mail_config.get('smtp', {}),
-        'storage': app_config.get('storage', {}),
+        'storage': {
+            'base_path': storage_base_path,
+            'max_attachment_size_mb': app_config.get('storage', {}).get('max_attachment_size_mb', 50)
+        },
         'logging': app_config.get('logging', {}),
+        'app_name': app_config.get('app_name', 'Nice2Know'),
+        'version': app_config.get('version', '1.0.0'),
         # Add default processing/filters if not in app_config
         'processing': {
             'fetch_limit': 10,
@@ -45,18 +83,26 @@ def load_config(config_path: str = None) -> dict:
             'save_raw_eml': True,
             'extract_attachments': True
         },
-        'filters': {
+        'filters': app_config.get('filters', {
             'mark_as_read': False,
-            'move_to_processed': True  # Move processed mails to 'processed' folder
-        }
+            'move_to_processed': True,
+            'processed_folder': 'processed'
+        })
     }
+    
+    # Store root path for reference
+    config['_mail_agent_root'] = str(mail_agent_root)
     
     return config
 
 def run_agent(config: dict, dry_run: bool = False):
     """Main agent execution"""
     logger.info("=" * 60)
-    logger.info("Nice2Know Mail Agent - Starting")
+    logger.info(f"{config.get('app_name', 'Nice2Know')} Mail Agent - Starting")
+    logger.info(f"Version: {config.get('version', '1.0.0')}")
+    logger.info("=" * 60)
+    logger.info(f"Storage path: {config['storage']['base_path']}")
+    logger.info(f"Dry run mode: {dry_run}")
     logger.info("=" * 60)
     
     # Initialize components
@@ -136,47 +182,48 @@ def run_agent(config: dict, dry_run: bool = False):
         except Exception as e:
             logger.error(f"Error processing message {msg_id}: {e}", exc_info=True)
     
-    # Expunge deleted messages at the end
-    if config['filters'].get('move_to_processed', False) and not dry_run and processed_count > 0:
-        fetcher.expunge_deleted()
-    
     # Cleanup
     fetcher.disconnect()
     
     logger.info("=" * 60)
-    logger.info(f"Processed {processed_count}/{len(messages)} messages")
-    logger.info("Mail Agent finished")
+    logger.info(f"Processing complete. Processed {processed_count} message(s)")
     logger.info("=" * 60)
     
     return 0
 
 def main():
     parser = argparse.ArgumentParser(description='Nice2Know Mail Agent')
-    parser.add_argument('--config', help='Path to mail_config.json', default=None)
-    parser.add_argument('--dry-run', action='store_true', help='Fetch but don\'t save')
-    parser.add_argument('--loop', action='store_true', help='Run continuously')
-    parser.add_argument('--interval', type=int, default=60, help='Loop interval in seconds')
+    parser.add_argument('--config', help='Path to mail config JSON file')
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Test mode - fetch but do not save or modify')
+    parser.add_argument('--loop', action='store_true',
+                       help='Run continuously in loop mode')
+    parser.add_argument('--interval', type=int, default=60,
+                       help='Loop interval in seconds (default: 60)')
     
     args = parser.parse_args()
     
     try:
         config = load_config(args.config)
-    except FileNotFoundError:
-        logger.error("Configuration file not found. Please create config/connections/mail_config.json")
+        
+        if args.loop:
+            logger.info(f"Starting loop mode (interval: {args.interval}s)")
+            logger.info("Press Ctrl+C to stop")
+            
+            while True:
+                try:
+                    run_agent(config, args.dry_run)
+                    logger.info(f"Waiting {args.interval} seconds before next run...")
+                    time.sleep(args.interval)
+                except KeyboardInterrupt:
+                    logger.info("\nLoop interrupted by user")
+                    break
+        else:
+            return run_agent(config, args.dry_run)
+            
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
         return 1
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in config file: {e}")
-        return 1
-    
-    if args.loop:
-        import time
-        logger.info(f"Running in loop mode (interval: {args.interval}s)")
-        while True:
-            run_agent(config, args.dry_run)
-            logger.info(f"Sleeping for {args.interval} seconds...")
-            time.sleep(args.interval)
-    else:
-        return run_agent(config, args.dry_run)
 
 if __name__ == '__main__':
     sys.exit(main())

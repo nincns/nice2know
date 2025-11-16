@@ -12,6 +12,7 @@ Usage:
 import sys
 import subprocess
 import shutil
+import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple, List
@@ -19,11 +20,12 @@ import argparse
 
 # Auto-detect mail_agent/ directory
 def find_mail_agent_root(start_path: Path) -> Path:
+    """Find mail_agent root by looking for key directories"""
     current = start_path
     for _ in range(5):
         if (current / 'agents').exists() and \
            (current / 'catalog').exists() and \
-           (current / 'storage').exists():
+           (current / 'config').exists():
             return current
         if current.parent != current:
             current = current.parent
@@ -42,8 +44,39 @@ BLUE = '\033[0;34m'
 CYAN = '\033[0;36m'
 NC = '\033[0m'
 
+def load_application_config() -> dict:
+    """Load application configuration from JSON"""
+    config_file = WORKING_DIR / 'config' / 'connections' / 'application.json'
+    
+    if not config_file.exists():
+        print(f"{RED}Error: application.json not found at {config_file}{NC}")
+        sys.exit(1)
+    
+    try:
+        with open(config_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"{RED}Error loading application config: {e}{NC}")
+        sys.exit(1)
+
+def get_storage_base() -> Path:
+    """Get absolute storage base path from config"""
+    config = load_application_config()
+    base_path = config.get('storage', {}).get('base_path', './storage')
+    
+    # Resolve relative path from WORKING_DIR
+    if not Path(base_path).is_absolute():
+        storage_base = WORKING_DIR / base_path
+    else:
+        storage_base = Path(base_path)
+    
+    return storage_base.resolve()
+
 def get_unprocessed_mails(mail_dir: Path) -> List[Path]:
     """Get all .eml files, sorted from oldest to newest"""
+    if not mail_dir.exists():
+        return []
+    
     mail_files = list(mail_dir.glob("*.eml"))
     
     if not mail_files:
@@ -179,27 +212,29 @@ def main():
     
     args = parser.parse_args()
     
-    # Setup directories
-    mail_dir = WORKING_DIR / 'storage' / 'mails'
-    output_dir = WORKING_DIR / 'storage' / 'processed'
-    failed_dir = WORKING_DIR / 'storage' / 'failed'
-    processed_dir = WORKING_DIR / 'storage' / 'processed'
+    # Get storage base from config
+    storage_base = get_storage_base()
     
-    # Create directories
-    output_dir.mkdir(parents=True, exist_ok=True)
-    failed_dir.mkdir(parents=True, exist_ok=True)
-    processed_dir.mkdir(parents=True, exist_ok=True)
+    # Define directories from config
+    mail_dir = storage_base / 'mails'
+    output_dir = storage_base / 'processed'
+    failed_dir = storage_base / 'failed'
+    processed_dir = storage_base / 'processed'
+    
+    # Create directories if they don't exist
+    for directory in [mail_dir, output_dir, failed_dir, processed_dir]:
+        directory.mkdir(parents=True, exist_ok=True)
     
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"{BLUE}Nice2Know - Mail Extraction Pipeline{NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
-    print(f"Working directory: {WORKING_DIR}")
+    print(f"Working directory:   {WORKING_DIR}")
+    print(f"Storage base:        {storage_base}")
+    print(f"Mail directory:      {mail_dir}")
+    print(f"Processed directory: {processed_dir}")
+    print(f"Failed directory:    {failed_dir}")
+    print(f"{BLUE}{'=' * 60}{NC}")
     print()
-    
-    # Check mail directory
-    if not mail_dir.exists():
-        print(f"{RED}✗ Mail directory not found: {mail_dir}{NC}")
-        sys.exit(1)
     
     # Get unprocessed mails
     mails = get_unprocessed_mails(mail_dir)

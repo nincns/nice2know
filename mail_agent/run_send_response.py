@@ -18,11 +18,12 @@ from email import policy
 
 # Auto-detect mail_agent/ directory
 def find_mail_agent_root(start_path: Path) -> Path:
+    """Find mail_agent root by looking for key directories"""
     current = start_path
     for _ in range(5):
         if (current / 'agents').exists() and \
            (current / 'catalog').exists() and \
-           (current / 'storage').exists():
+           (current / 'config').exists():
             return current
         if current.parent != current:
             current = current.parent
@@ -35,7 +36,7 @@ WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.analyze_json_quality import analyze_quality, get_field_status
-from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email
+from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email, load_application_config
 
 # Colors
 GREEN = '\033[0;32m'
@@ -43,6 +44,19 @@ RED = '\033[0;31m'
 YELLOW = '\033[1;33m'
 BLUE = '\033[0;34m'
 NC = '\033[0m'
+
+def get_storage_base() -> Path:
+    """Get absolute storage base path from config"""
+    config = load_application_config()
+    base_path = config.get('storage', {}).get('base_path', './storage')
+    
+    # Resolve relative path from WORKING_DIR
+    if not Path(base_path).is_absolute():
+        storage_base = WORKING_DIR / base_path
+    else:
+        storage_base = Path(base_path)
+    
+    return storage_base.resolve()
 
 def load_mail_config() -> tuple[Dict, Dict]:
     """Load mail configuration and secrets"""
@@ -496,6 +510,16 @@ def main():
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Working directory: {WORKING_DIR}\n")
     
+    # Get storage base from config
+    storage_base = get_storage_base()
+    processed_dir = storage_base / 'processed'
+    sent_dir = storage_base / 'sent'
+    
+    print(f"Storage base:        {storage_base}")
+    print(f"Processed directory: {processed_dir}")
+    print(f"Sent directory:      {sent_dir}")
+    print()
+    
     # Load mail configuration
     try:
         print("Loading mail configuration...")
@@ -505,15 +529,14 @@ def main():
         print(f"{RED}✗ Failed to load mail configuration: {e}{NC}")
         sys.exit(1)
     
-    processed_dir = WORKING_DIR / 'storage' / 'processed'
     if not processed_dir.exists():
-        print(f"{RED}✗ Processed directory not found{NC}")
+        print(f"{RED}✗ Processed directory not found: {processed_dir}{NC}")
         sys.exit(1)
     
     # Find latest
     json_files = list(processed_dir.glob('*_problem.json'))
     if not json_files:
-        print(f"{RED}✗ No problem JSON files found{NC}")
+        print(f"{RED}✗ No problem JSON files found in {processed_dir}{NC}")
         sys.exit(1)
     
     latest_problem = sorted(json_files, key=lambda p: p.stem)[-1]
@@ -585,7 +608,6 @@ def main():
         print(f"{GREEN}✓ Mail sent successfully!{NC}\n")
         
         # Move mail to sent directory
-        sent_dir = WORKING_DIR / 'storage' / 'sent'
         print(f"Moving mail to sent directory...")
         if move_to_sent(mail_file, sent_dir):
             print(f"\n{GREEN}✓ Process completed successfully!{NC}")

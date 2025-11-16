@@ -24,20 +24,61 @@ function find_mail_agent_root($start_path) {
     return $start_path;
 }
 
-// Define base paths - HARDCODED for www/ directory
-define('MAIL_AGENT_ROOT', '/opt/nice2know/mail_agent');
-define('STORAGE_DIR', MAIL_AGENT_ROOT . '/storage');
+// Load application configuration from JSON
+function load_application_config($mail_agent_root) {
+    $config_file = $mail_agent_root . '/config/connections/application.json';
+    
+    if (!file_exists($config_file)) {
+        error_log("application.json not found at: $config_file");
+        return null;
+    }
+    
+    $json = file_get_contents($config_file);
+    $config = json_decode($json, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("Error parsing application.json: " . json_last_error_msg());
+        return null;
+    }
+    
+    return $config;
+}
+
+// Detect mail_agent root from current script location
+$detected_root = find_mail_agent_root(__DIR__);
+
+// Load config
+$app_config = load_application_config($detected_root);
+
+if ($app_config === null) {
+    die("FATAL: Could not load application.json configuration");
+}
+
+// Define base paths from config
+define('MAIL_AGENT_ROOT', $detected_root);
+
+// Get storage base path from config (default to ./storage if not found)
+$storage_base_path = $app_config['storage']['base_path'] ?? './storage';
+
+// Resolve relative path
+if (substr($storage_base_path, 0, 1) !== '/') {
+    // Relative path - resolve from MAIL_AGENT_ROOT
+    $storage_base_path = MAIL_AGENT_ROOT . '/' . $storage_base_path;
+}
+
+define('STORAGE_DIR', realpath($storage_base_path) ?: $storage_base_path);
 define('PROCESSED_DIR', STORAGE_DIR . '/processed');
 define('SENT_DIR', STORAGE_DIR . '/sent');
 define('MAILS_DIR', STORAGE_DIR . '/mails');
 
-// Application settings
-define('APP_NAME', 'Nice2Know Editor');
-define('APP_VERSION', '1.0.0');
+// Application settings from config
+define('APP_NAME', $app_config['app_name'] ?? 'Nice2Know Editor');
+define('APP_VERSION', $app_config['version'] ?? '1.0.0');
 define('DEBUG_MODE', true); // Set to false in production
 
-// Web server settings
-define('BASE_URL', 'http://10.147.17.50/n2k');
+// Web server settings - load from config if available
+$base_url = $app_config['base_url'] ?? 'http://10.147.17.50/n2k';
+define('BASE_URL', $base_url);
 define('EDITOR_PATH', '/');
 
 // API settings
@@ -102,80 +143,21 @@ function send_success($data = null, $message = null) {
 function validate_mail_id($mail_id) {
     // Accept both formats:
     // 1. Timestamp format: YYYYMMDD_HHMMSS (legacy)
-    // 2. Hex mail ID: 32 hex characters (from JSON)
-    if (preg_match('/^\d{8}_\d{6}$/', $mail_id)) {
-        return true; // Timestamp format
+    // 2. Hex format: 32 hex characters (current)
+    if (preg_match('/^[0-9]{8}_[0-9]{6}$/', $mail_id)) {
+        return true; // Legacy timestamp format
     }
     if (preg_match('/^[a-f0-9]{32}$/', $mail_id)) {
-        return true; // Hex mail ID
+        return true; // Hex format
     }
     return false;
 }
 
-// Helper function: Sanitize mail_id (prevent path traversal)
-function sanitize_mail_id($mail_id) {
-    // Remove any path separators and only allow alphanumeric + underscore
-    return preg_replace('/[^a-zA-Z0-9_]/', '', $mail_id);
-}
-
-// Helper function: Generate editor URL for a given mail_id
-function get_editor_url($mail_id) {
-    $sanitized_id = sanitize_mail_id($mail_id);
-    return BASE_URL . EDITOR_PATH . '?mail_id=' . urlencode($sanitized_id);
-}
-
-// Helper function: Generate confirmation URL for a given mail_id
-function get_confirm_url($mail_id) {
-    $sanitized_id = sanitize_mail_id($mail_id);
-    return BASE_URL . '/confirm.php?mail_id=' . urlencode($sanitized_id);
-}
-
-// Helper function: Find timestamp from hex mail_id by searching JSON files
-function find_timestamp_from_mail_id($mail_id) {
-    // If it's already a timestamp, return it
-    if (preg_match('/^\d{8}_\d{6}$/', $mail_id)) {
-        return $mail_id;
-    }
-    
-    // Search for the mail_id in problem.json files
-    $files = glob(PROCESSED_DIR . '/*_problem.json');
-    
-    foreach ($files as $file) {
-        $content = file_get_contents($file);
-        $data = json_decode($content, true);
-        
-        if (isset($data['mail_id']) && $data['mail_id'] === $mail_id) {
-            // Extract timestamp from filename
-            $basename = basename($file, '_problem.json');
-            return $basename;
-        }
-    }
-    
-    return null; // Not found
-}
-
-// Log function for debugging
-function debug_log($message, $data = null) {
-    if (!DEBUG_MODE) return;
-    
-    $log_entry = "[" . date('Y-m-d H:i:s') . "] " . $message;
-    if ($data !== null) {
-        $log_entry .= " | Data: " . json_encode($data);
-    }
-    error_log($log_entry);
-}
-
-// Verify directories on config load
+// Debug output in development mode
 if (DEBUG_MODE) {
-    $dir_errors = verify_directories();
-    if (!empty($dir_errors)) {
-        debug_log("Directory verification failed", $dir_errors);
-    } else {
-        debug_log("Config loaded successfully", [
-            'root' => MAIL_AGENT_ROOT,
-            'storage' => STORAGE_DIR,
-            'processed' => PROCESSED_DIR
-        ]);
-    }
+    error_log("Nice2Know Config Loaded:");
+    error_log("  MAIL_AGENT_ROOT: " . MAIL_AGENT_ROOT);
+    error_log("  STORAGE_DIR: " . STORAGE_DIR);
+    error_log("  BASE_URL: " . BASE_URL);
 }
 ?>
