@@ -36,7 +36,7 @@ WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.analyze_json_quality import analyze_quality, get_field_status
-from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email, load_application_config
+from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email
 
 # Colors
 GREEN = '\033[0;32m'
@@ -45,14 +45,37 @@ YELLOW = '\033[1;33m'
 BLUE = '\033[0;34m'
 NC = '\033[0m'
 
+def load_application_config() -> Dict:
+    """Load application.json from correct location"""
+    # Try multiple locations
+    possible_locations = [
+        WORKING_DIR / 'config' / 'connections' / 'application.json',
+        WORKING_DIR / 'utils' / 'config' / 'connections' / 'application.json',
+        Path('/opt/nice2know/mail_agent/config/connections/application.json'),
+    ]
+    
+    for config_path in possible_locations:
+        if config_path.exists():
+            print(f"{GREEN}✓ Found application.json at: {config_path}{NC}")
+            with open(config_path, 'r') as f:
+                return json.load(f)
+    
+    print(f"{YELLOW}Warning: application.json not found, using defaults{NC}")
+    return {
+        'storage': {
+            'base_path': '/opt/nice2know/storage'
+        }
+    }
+
 def get_storage_base() -> Path:
     """Get absolute storage base path from config"""
     config = load_application_config()
-    base_path = config.get('storage', {}).get('base_path', './storage')
+    base_path = config.get('storage', {}).get('base_path', '/opt/nice2know/storage')
     
-    # Resolve relative path from WORKING_DIR
+    # Always use absolute path
     if not Path(base_path).is_absolute():
-        storage_base = WORKING_DIR / base_path
+        # If relative, resolve from project root (parent of mail_agent)
+        storage_base = WORKING_DIR.parent / base_path
     else:
         storage_base = Path(base_path)
     
@@ -506,7 +529,7 @@ def move_to_sent(mail_file: Path, sent_dir: Path) -> bool:
 
 def main():
     print(f"{BLUE}{'=' * 60}{NC}")
-    print(f"{BLUE}Nice2Know - Send Confirmation Mail v3{NC}")
+    print(f"{BLUE}Nice2Know - Send Confirmation Mail v3 (Fixed){NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"Working directory: {WORKING_DIR}\n")
     
