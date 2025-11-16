@@ -36,7 +36,6 @@ WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 from utils.analyze_json_quality import analyze_quality, get_field_status
-from utils.web_config_utils import get_editor_url, get_confirm_url, get_support_email
 
 # Colors
 GREEN = '\033[0;32m'
@@ -64,8 +63,35 @@ def load_application_config() -> Dict:
     return {
         'storage': {
             'base_path': '/opt/nice2know/storage'
+        },
+        'base_url': 'http://localhost/n2k',
+        'admin': {
+            'email': 'support@example.com'
         }
     }
+
+def get_base_url() -> str:
+    """Get base URL from application config"""
+    config = load_application_config()
+    base_url = config.get('base_url', 'http://localhost/n2k')
+    # Remove trailing slash if present
+    return base_url.rstrip('/')
+
+def get_editor_url(mail_id: str) -> str:
+    """Generate editor URL using base_url from config"""
+    base_url = get_base_url()
+    return f"{base_url}/?mail_id={mail_id}"
+
+def get_confirm_url(mail_id: str) -> str:
+    """Generate confirm URL using base_url from config"""
+    base_url = get_base_url()
+    return f"{base_url}/confirm.php?mail_id={mail_id}"
+
+def get_support_email() -> str:
+    """Get support email from application config"""
+    config = load_application_config()
+    return config.get('admin', {}).get('email', 'support@example.com')
+
 
 def get_storage_base() -> Path:
     """Get absolute storage base path from config"""
