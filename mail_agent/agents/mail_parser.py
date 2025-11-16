@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nice2Know Mail Agent - Email Parser
+Nice2Know Mail Agent - Email Parser with S/MIME Support
 """
 import email
 from email import policy
@@ -39,10 +39,13 @@ class MailParser:
                 'body': self._extract_body(msg),
                 'attachments': self._extract_attachments(msg),
                 'headers': dict(msg.items()),
-                'raw_size': len(raw_email)
+                'raw_size': len(raw_email),
+                'smime_signed': msg.get_content_type() == 'multipart/signed'
             }
             
-            logger.info(f"Parsed mail: {parsed['subject'][:50]}... ({len(parsed['attachments'])} attachments)")
+            logger.info(f"Parsed mail: {parsed['subject'][:50]}... "
+                       f"({len(parsed['attachments'])} attachments, "
+                       f"S/MIME: {parsed['smime_signed']})")
             return parsed
             
         except Exception as e:
@@ -93,16 +96,33 @@ class MailParser:
             return datetime.now().isoformat()
     
     def _extract_body(self, msg) -> Dict[str, str]:
-        """Extract plain text and HTML body"""
+        """Extract plain text and HTML body, including S/MIME signed content"""
         body = {
             'plain': '',
             'html': ''
         }
         
+        # Check if this is an S/MIME signed message
+        if msg.get_content_type() == 'multipart/signed':
+            logger.info("Detected S/MIME signed message - extracting content before signature")
+            # First part is the actual content, second is the signature
+            parts = list(msg.get_payload())
+            if parts:
+                msg = parts[0]  # Use first part (content) instead of signature
+                logger.debug(f"S/MIME content part type: {msg.get_content_type()}")
+        
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
                 disposition = part.get_content_disposition()
+                
+                # Skip S/MIME signatures and certificates
+                if content_type in ['application/pkcs7-signature',
+                                   'application/x-pkcs7-signature',
+                                   'application/pkcs7-mime',
+                                   'application/x-pkcs7-mime']:
+                    logger.debug(f"Skipping S/MIME component: {content_type}")
+                    continue
                 
                 if disposition == 'attachment':
                     continue
@@ -115,10 +135,12 @@ class MailParser:
                         
                         if content_type == 'text/plain':
                             body['plain'] += text
+                            logger.debug(f"Extracted {len(text)} chars of plain text")
                         elif content_type == 'text/html':
                             body['html'] += text
+                            logger.debug(f"Extracted {len(text)} chars of HTML")
                 except Exception as e:
-                    logger.warning(f"Failed to extract body part: {e}")
+                    logger.warning(f"Failed to extract body part ({content_type}): {e}")
         else:
             # Non-multipart message
             try:
@@ -135,14 +157,35 @@ class MailParser:
             except Exception as e:
                 logger.warning(f"Failed to extract body: {e}")
         
+        # If still no content, log warning with details
+        if not body['plain'] and not body['html']:
+            logger.warning(f"No body content extracted - Content-Type: {msg.get_content_type()}")
+            logger.warning("Mail might be encrypted (S/MIME encrypted) or malformed")
+        else:
+            logger.info(f"Body extracted: {len(body['plain'])} chars plain, {len(body['html'])} chars HTML")
+        
         return body
     
     def _extract_attachments(self, msg) -> List[Dict[str, Any]]:
         """Extract attachment metadata (not content yet)"""
         attachments = []
         
+        # Handle S/MIME: if signed, look in first part
+        if msg.get_content_type() == 'multipart/signed':
+            parts = list(msg.get_payload())
+            if parts:
+                msg = parts[0]  # Use content part
+        
         for part in msg.walk():
             disposition = part.get_content_disposition()
+            content_type = part.get_content_type()
+            
+            # Skip S/MIME signatures
+            if content_type in ['application/pkcs7-signature',
+                               'application/x-pkcs7-signature',
+                               'application/pkcs7-mime',
+                               'application/x-pkcs7-mime']:
+                continue
             
             if disposition in ['attachment', 'inline']:
                 filename = part.get_filename()
