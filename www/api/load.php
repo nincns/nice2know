@@ -2,8 +2,9 @@
 /**
  * Nice2Know - Load API
  * Loads problem, solution, and asset JSONs for a given mail_id
+ * Prioritizes edited exports over processed files
  *
- * GET /api/load.php?mail_id=YYYYMMDD_HHMMSS
+ * GET /api/load.php?mail_id=575496876c3645bc8bf5f79c1696c134
  */
 
 require_once '../config.php';
@@ -46,6 +47,52 @@ if ($timestamp === null) {
 }
 
 debug_log("Resolved timestamp", $timestamp);
+
+// Check if edited export exists (has priority over processed files)
+$export_dir = STORAGE_DIR . '/export';
+$export_file = $export_dir . "/{$timestamp}_edited.json";
+$has_export = file_exists($export_file);
+
+if ($has_export) {
+    debug_log("Loading from export (edited version)", $export_file);
+    
+    // Load consolidated export file
+    $export_content = file_get_contents($export_file);
+    $export_data = json_decode($export_content, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        debug_log("Failed to parse export file, falling back to processed files");
+        $has_export = false;
+    } else {
+        // Return edited data from export
+        $data = [
+            'problem' => $export_data['problem'],
+            'solution' => $export_data['solution'] ?? null,
+            'asset' => $export_data['asset'],
+            'metadata' => [
+                'mail_id' => $mail_id,
+                'loaded_at' => date('Y-m-d H:i:s'),
+                'source' => 'export',
+                'edited_at' => $export_data['edited_at'] ?? null,
+                'files' => [
+                    'problem' => true,
+                    'solution' => isset($export_data['solution']),
+                    'asset' => true
+                ]
+            ]
+        ];
+        
+        debug_log("Data loaded from export", [
+            'mail_id' => $mail_id,
+            'edited_at' => $export_data['edited_at'] ?? 'unknown'
+        ]);
+        
+        send_success($data);
+    }
+}
+
+// No export or export failed - load from processed files
+debug_log("Loading from processed files (original version)");
 
 // Build file paths using timestamp
 $problem_file = PROCESSED_DIR . "/{$timestamp}_problem.json";
@@ -105,10 +152,11 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $data['metadata'] = [
     'mail_id' => $mail_id,
     'loaded_at' => date('Y-m-d H:i:s'),
+    'source' => 'processed',
     'files' => $files_status
 ];
 
-debug_log("Data loaded successfully", [
+debug_log("Data loaded successfully from processed", [
     'mail_id' => $mail_id,
     'has_solution' => $data['solution'] !== null
 ]);
