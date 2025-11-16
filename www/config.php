@@ -11,17 +11,50 @@ ini_set('display_errors', 1);
 // Auto-detect mail_agent root directory
 function find_mail_agent_root($start_path) {
     $current = realpath($start_path);
+    
+    // Try up to 5 levels up
     for ($i = 0; $i < 5; $i++) {
+        // Check for key directories that identify mail_agent root
         if (is_dir("$current/agents") &&
             is_dir("$current/catalog") &&
-            is_dir("$current/storage")) {
+            is_dir("$current/config")) {
             return $current;
         }
+        
         $parent = dirname($current);
-        if ($parent === $current) break;
+        if ($parent === $current) break; // Reached filesystem root
         $current = $parent;
     }
-    return $start_path;
+    
+    // Fallback: Try common locations
+    $common_paths = [
+        '/opt/nice2know/mail_agent',
+        dirname(__DIR__), // Parent of www/
+        __DIR__ . '/../mail_agent'
+    ];
+    
+    foreach ($common_paths as $path) {
+        $resolved = realpath($path);
+        if ($resolved && is_dir("$resolved/config")) {
+            return $resolved;
+        }
+    }
+    
+    return null;
+}
+
+// Detect mail_agent root from current script location
+$detected_root = find_mail_agent_root(__DIR__);
+
+if ($detected_root === null) {
+    // Last resort: check if we're inside mail_agent already
+    if (is_dir(__DIR__ . '/config') && is_dir(__DIR__ . '/agents')) {
+        $detected_root = __DIR__;
+    } else {
+        error_log("FATAL: Could not detect mail_agent root directory");
+        error_log("Started from: " . __DIR__);
+        die("FATAL: Could not detect mail_agent root directory. Please check installation.");
+    }
 }
 
 // Load application configuration from JSON
@@ -30,6 +63,8 @@ function load_application_config($mail_agent_root) {
     
     if (!file_exists($config_file)) {
         error_log("application.json not found at: $config_file");
+        error_log("mail_agent_root: $mail_agent_root");
+        error_log("Directory contents: " . print_r(scandir($mail_agent_root), true));
         return null;
     }
     
@@ -44,14 +79,12 @@ function load_application_config($mail_agent_root) {
     return $config;
 }
 
-// Detect mail_agent root from current script location
-$detected_root = find_mail_agent_root(__DIR__);
-
 // Load config
 $app_config = load_application_config($detected_root);
 
 if ($app_config === null) {
-    die("FATAL: Could not load application.json configuration");
+    error_log("FATAL: Could not load application.json from: $detected_root");
+    die("FATAL: Could not load application.json configuration<br>Root: $detected_root<br>Expected: $detected_root/config/connections/application.json");
 }
 
 // Define base paths from config
@@ -155,9 +188,20 @@ function validate_mail_id($mail_id) {
 
 // Debug output in development mode
 if (DEBUG_MODE) {
-    error_log("Nice2Know Config Loaded:");
-    error_log("  MAIL_AGENT_ROOT: " . MAIL_AGENT_ROOT);
-    error_log("  STORAGE_DIR: " . STORAGE_DIR);
-    error_log("  BASE_URL: " . BASE_URL);
+    error_log("=== Nice2Know Config Loaded ===");
+    error_log("MAIL_AGENT_ROOT: " . MAIL_AGENT_ROOT);
+    error_log("STORAGE_DIR: " . STORAGE_DIR);
+    error_log("PROCESSED_DIR: " . PROCESSED_DIR);
+    error_log("BASE_URL: " . BASE_URL);
+    error_log("Config file: " . MAIL_AGENT_ROOT . '/config/connections/application.json');
+    
+    // Verify directories
+    $errors = verify_directories();
+    if (!empty($errors)) {
+        error_log("WARNING: Directory verification failed:");
+        foreach ($errors as $error) {
+            error_log("  - $error");
+        }
+    }
 }
 ?>
