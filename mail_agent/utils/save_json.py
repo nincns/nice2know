@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Nice2Know - Save JSON via Python
-Fallback save method when PHP has permission issues
+Nice2Know - Save JSON via Python (No Backup)
+Overwrites JSON files directly without backup
 
 Usage:
   python save_json.py <mail_id> <problem.json> <solution.json> <asset.json>
 """
 import sys
 import json
-import shutil
 from pathlib import Path
-from datetime import datetime
 
 def find_mail_agent_root(start_path: Path) -> Path:
     """Find mail_agent root directory"""
@@ -77,7 +75,7 @@ def find_timestamp_from_mail_id(mail_id: str, processed_dir: Path) -> str:
     return None
 
 def save_json_files(mail_id: str, problem_data: dict, solution_data: dict, asset_data: dict):
-    """Save JSON files with backup"""
+    """Save JSON files directly (no backup)"""
     # Find mail_agent root
     script_dir = Path(__file__).resolve().parent
     mail_agent_root = find_mail_agent_root(script_dir)
@@ -88,7 +86,6 @@ def save_json_files(mail_id: str, problem_data: dict, solution_data: dict, asset
     config = load_application_config(mail_agent_root)
     storage_base = get_storage_base(config, mail_agent_root)
     processed_dir = storage_base / 'processed'
-    backup_dir = storage_base / 'backups'
     
     print(f"Storage Base: {storage_base}")
     print(f"Processed Dir: {processed_dir}")
@@ -107,70 +104,33 @@ def save_json_files(mail_id: str, problem_data: dict, solution_data: dict, asset
     solution_file = processed_dir / f"{timestamp}_solution.json"
     asset_file = processed_dir / f"{timestamp}_asset.json"
     
-    # Try to create backup directory (optional - don't fail if can't)
-    backup_enabled = True
-    try:
-        backup_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Backup Dir: {backup_dir}")
-    except PermissionError as e:
-        print(f"Warning: Cannot create backup directory {backup_dir}: {e}")
-        print("Continuing without backups...")
-        backup_enabled = False
-    
-    # Backup existing files (if backup is enabled)
-    if backup_enabled:
-        backup_timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        
-        if problem_file.exists():
-            try:
-                backup_file = backup_dir / f"{timestamp}_problem_{backup_timestamp}.json"
-                shutil.copy2(problem_file, backup_file)
-                print(f"Backed up: {backup_file.name}")
-            except Exception as e:
-                print(f"Warning: Could not backup problem.json: {e}")
-        
-        if solution_file.exists():
-            try:
-                backup_file = backup_dir / f"{timestamp}_solution_{backup_timestamp}.json"
-                shutil.copy2(solution_file, backup_file)
-                print(f"Backed up: {backup_file.name}")
-            except Exception as e:
-                print(f"Warning: Could not backup solution.json: {e}")
-        
-        if asset_file.exists():
-            try:
-                backup_file = backup_dir / f"{timestamp}_asset_{backup_timestamp}.json"
-                shutil.copy2(asset_file, backup_file)
-                print(f"Backed up: {backup_file.name}")
-            except Exception as e:
-                print(f"Warning: Could not backup asset.json: {e}")
-    
-    # Save new files
+    # Save files directly (no backup)
     try:
         with open(problem_file, 'w', encoding='utf-8') as f:
             json.dump(problem_data, f, indent=2, ensure_ascii=False)
-        print(f"Saved: {problem_file.name}")
+        print(f"✓ Saved: {problem_file.name}")
     except Exception as e:
         print(f"ERROR: Could not save problem.json: {e}")
         sys.exit(1)
     
+    # Save solution only if provided and not null
     if solution_data and solution_data != 'null':
         try:
             with open(solution_file, 'w', encoding='utf-8') as f:
                 json.dump(solution_data, f, indent=2, ensure_ascii=False)
-            print(f"Saved: {solution_file.name}")
+            print(f"✓ Saved: {solution_file.name}")
         except Exception as e:
             print(f"Warning: Could not save solution.json: {e}")
     
     try:
         with open(asset_file, 'w', encoding='utf-8') as f:
             json.dump(asset_data, f, indent=2, ensure_ascii=False)
-        print(f"Saved: {asset_file.name}")
+        print(f"✓ Saved: {asset_file.name}")
     except Exception as e:
         print(f"ERROR: Could not save asset.json: {e}")
         sys.exit(1)
     
-    print("\n✓ All files saved successfully!")
+    print("✓ All files saved successfully!")
 
 def main():
     if len(sys.argv) < 5:
