@@ -121,6 +121,10 @@ define('ALLOWED_ORIGINS', '*'); // TODO: Restrict in production
 // File settings
 define('JSON_OPTIONS', JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 // Verify critical directories exist
 function verify_directories() {
     $required_dirs = [
@@ -139,7 +143,7 @@ function verify_directories() {
     return $errors;
 }
 
-// Helper function: Send JSON response
+// Send JSON response
 function send_json_response($data, $status_code = 200) {
     http_response_code($status_code);
     header('Content-Type: ' . API_RESPONSE_TYPE);
@@ -148,7 +152,7 @@ function send_json_response($data, $status_code = 200) {
     exit;
 }
 
-// Helper function: Send error response
+// Send error response
 function send_error($message, $status_code = 400, $details = null) {
     $response = [
         'success' => false,
@@ -160,7 +164,7 @@ function send_error($message, $status_code = 400, $details = null) {
     send_json_response($response, $status_code);
 }
 
-// Helper function: Send success response
+// Send success response
 function send_success($data = null, $message = null) {
     $response = ['success' => true];
     if ($message) {
@@ -172,7 +176,7 @@ function send_success($data = null, $message = null) {
     send_json_response($response, 200);
 }
 
-// Helper function: Validate mail_id format
+// Validate mail_id format
 function validate_mail_id($mail_id) {
     // Accept both formats:
     // 1. Timestamp format: YYYYMMDD_HHMMSS (legacy)
@@ -186,7 +190,7 @@ function validate_mail_id($mail_id) {
     return false;
 }
 
-// Helper function: Sanitize mail_id (remove dangerous characters)
+// Sanitize mail_id (remove dangerous characters)
 function sanitize_mail_id($mail_id) {
     // Remove everything except alphanumeric and underscore
     $sanitized = preg_replace('/[^a-zA-Z0-9_]/', '', $mail_id);
@@ -197,7 +201,7 @@ function sanitize_mail_id($mail_id) {
     return $sanitized;
 }
 
-// Helper function: Get safe mail_id from request
+// Get safe mail_id from request
 function get_safe_mail_id($param_name = 'mail_id') {
     $mail_id = $_GET[$param_name] ?? $_POST[$param_name] ?? null;
     
@@ -216,7 +220,118 @@ function get_safe_mail_id($param_name = 'mail_id') {
     return $mail_id;
 }
 
-// Debug output in development mode
+// Find timestamp from mail_id by searching in processed directory
+function find_timestamp_from_mail_id($mail_id) {
+    // Search for files matching the mail_id in processed directory
+    $pattern = PROCESSED_DIR . '/*_problem.json';
+    $problem_files = glob($pattern);
+    
+    if (empty($problem_files)) {
+        error_log("No problem files found in: " . PROCESSED_DIR);
+        return null;
+    }
+    
+    // Search through all problem.json files
+    foreach ($problem_files as $file) {
+        $json_content = file_get_contents($file);
+        $data = json_decode($json_content, true);
+        
+        if ($data && isset($data['mail_id']) && $data['mail_id'] === $mail_id) {
+            // Extract timestamp from filename
+            // Format: YYYYMMDD_HHMMSS_problem.json
+            $filename = basename($file);
+            if (preg_match('/^(\d{8}_\d{6})_problem\.json$/', $filename, $matches)) {
+                error_log("Found timestamp for mail_id $mail_id: " . $matches[1]);
+                return $matches[1];
+            }
+        }
+    }
+    
+    error_log("No timestamp found for mail_id: $mail_id");
+    return null;
+}
+
+// Load JSON file safely
+function load_json_file($filepath) {
+    if (!file_exists($filepath)) {
+        error_log("JSON file not found: $filepath");
+        return null;
+    }
+    
+    $json_content = file_get_contents($filepath);
+    $data = json_decode($json_content, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("Error parsing JSON from $filepath: " . json_last_error_msg());
+        return null;
+    }
+    
+    return $data;
+}
+
+// Get all JSON files for a timestamp
+function get_json_files_for_timestamp($timestamp) {
+    $files = [
+        'problem' => PROCESSED_DIR . "/{$timestamp}_problem.json",
+        'solution' => PROCESSED_DIR . "/{$timestamp}_solution.json",
+        'asset' => PROCESSED_DIR . "/{$timestamp}_asset.json"
+    ];
+    
+    $result = [];
+    foreach ($files as $type => $filepath) {
+        if (file_exists($filepath)) {
+            $result[$type] = $filepath;
+        } else {
+            error_log("Warning: $type file not found: $filepath");
+        }
+    }
+    
+    return $result;
+}
+
+// Load all JSONs for a mail_id
+function load_data_by_mail_id($mail_id) {
+    // Find timestamp
+    $timestamp = find_timestamp_from_mail_id($mail_id);
+    
+    if (!$timestamp) {
+        return null;
+    }
+    
+    // Get file paths
+    $files = get_json_files_for_timestamp($timestamp);
+    
+    if (empty($files)) {
+        error_log("No JSON files found for timestamp: $timestamp");
+        return null;
+    }
+    
+    // Load all files
+    $data = [
+        'timestamp' => $timestamp,
+        'mail_id' => $mail_id
+    ];
+    
+    foreach ($files as $type => $filepath) {
+        $json_data = load_json_file($filepath);
+        if ($json_data) {
+            $data[$type] = $json_data;
+        }
+    }
+    
+    // Ensure we have at least problem data
+    if (!isset($data['problem'])) {
+        error_log("Problem data not found for mail_id: $mail_id");
+        return null;
+    }
+    
+    return $data;
+}
+
+// ============================================================================
+// DEBUG OUTPUT
+// ============================================================================
+
 if (DEBUG_MODE) {
     error_log("=== Nice2Know Config Loaded ===");
     error_log("MAIL_AGENT_ROOT: " . MAIL_AGENT_ROOT);
