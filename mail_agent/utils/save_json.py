@@ -107,41 +107,68 @@ def save_json_files(mail_id: str, problem_data: dict, solution_data: dict, asset
     solution_file = processed_dir / f"{timestamp}_solution.json"
     asset_file = processed_dir / f"{timestamp}_asset.json"
     
-    # Create backup directory
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    # Try to create backup directory (optional - don't fail if can't)
+    backup_enabled = True
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Backup Dir: {backup_dir}")
+    except PermissionError as e:
+        print(f"Warning: Cannot create backup directory {backup_dir}: {e}")
+        print("Continuing without backups...")
+        backup_enabled = False
     
-    # Backup timestamp
-    backup_timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    
-    # Backup existing files
-    if problem_file.exists():
-        backup_file = backup_dir / f"{timestamp}_problem_{backup_timestamp}.json"
-        shutil.copy2(problem_file, backup_file)
-        print(f"Backed up: {backup_file.name}")
-    
-    if solution_file.exists():
-        backup_file = backup_dir / f"{timestamp}_solution_{backup_timestamp}.json"
-        shutil.copy2(solution_file, backup_file)
-        print(f"Backed up: {backup_file.name}")
-    
-    if asset_file.exists():
-        backup_file = backup_dir / f"{timestamp}_asset_{backup_timestamp}.json"
-        shutil.copy2(asset_file, backup_file)
-        print(f"Backed up: {backup_file.name}")
+    # Backup existing files (if backup is enabled)
+    if backup_enabled:
+        backup_timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        
+        if problem_file.exists():
+            try:
+                backup_file = backup_dir / f"{timestamp}_problem_{backup_timestamp}.json"
+                shutil.copy2(problem_file, backup_file)
+                print(f"Backed up: {backup_file.name}")
+            except Exception as e:
+                print(f"Warning: Could not backup problem.json: {e}")
+        
+        if solution_file.exists():
+            try:
+                backup_file = backup_dir / f"{timestamp}_solution_{backup_timestamp}.json"
+                shutil.copy2(solution_file, backup_file)
+                print(f"Backed up: {backup_file.name}")
+            except Exception as e:
+                print(f"Warning: Could not backup solution.json: {e}")
+        
+        if asset_file.exists():
+            try:
+                backup_file = backup_dir / f"{timestamp}_asset_{backup_timestamp}.json"
+                shutil.copy2(asset_file, backup_file)
+                print(f"Backed up: {backup_file.name}")
+            except Exception as e:
+                print(f"Warning: Could not backup asset.json: {e}")
     
     # Save new files
-    with open(problem_file, 'w', encoding='utf-8') as f:
-        json.dump(problem_data, f, indent=2, ensure_ascii=False)
-    print(f"Saved: {problem_file.name}")
+    try:
+        with open(problem_file, 'w', encoding='utf-8') as f:
+            json.dump(problem_data, f, indent=2, ensure_ascii=False)
+        print(f"Saved: {problem_file.name}")
+    except Exception as e:
+        print(f"ERROR: Could not save problem.json: {e}")
+        sys.exit(1)
     
-    if solution_data:
-        with open(solution_file, 'w', encoding='utf-8') as f:
-            json.dump(solution_data, f, indent=2, ensure_ascii=False)
-        print(f"Saved: {solution_file.name}")
+    if solution_data and solution_data != 'null':
+        try:
+            with open(solution_file, 'w', encoding='utf-8') as f:
+                json.dump(solution_data, f, indent=2, ensure_ascii=False)
+            print(f"Saved: {solution_file.name}")
+        except Exception as e:
+            print(f"Warning: Could not save solution.json: {e}")
     
-    with open(asset_file, 'w', encoding='utf-8') as f:
-        json.dump(asset_data, f, indent=2, ensure_ascii=False)
-    print(f"Saved: {asset_file.name}")
+    try:
+        with open(asset_file, 'w', encoding='utf-8') as f:
+            json.dump(asset_data, f, indent=2, ensure_ascii=False)
+        print(f"Saved: {asset_file.name}")
+    except Exception as e:
+        print(f"ERROR: Could not save asset.json: {e}")
+        sys.exit(1)
     
     print("\n✓ All files saved successfully!")
 
@@ -156,16 +183,27 @@ def main():
     asset_file = Path(sys.argv[4])
     
     # Load JSON files
-    with open(problem_file, 'r') as f:
-        problem_data = json.load(f)
+    try:
+        with open(problem_file, 'r') as f:
+            problem_data = json.load(f)
+    except Exception as e:
+        print(f"ERROR: Could not load problem.json: {e}")
+        sys.exit(1)
     
     solution_data = None
-    if solution_file.exists():
-        with open(solution_file, 'r') as f:
-            solution_data = json.load(f)
+    if solution_file.exists() and solution_file.stat().st_size > 0:
+        try:
+            with open(solution_file, 'r') as f:
+                solution_data = json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load solution.json: {e}")
     
-    with open(asset_file, 'r') as f:
-        asset_data = json.load(f)
+    try:
+        with open(asset_file, 'r') as f:
+            asset_data = json.load(f)
+    except Exception as e:
+        print(f"ERROR: Could not load asset.json: {e}")
+        sys.exit(1)
     
     # Save
     save_json_files(mail_id, problem_data, solution_data, asset_data)
