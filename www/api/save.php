@@ -229,8 +229,8 @@ function save_via_python($mail_id, $data) {
     file_put_contents($temp_solution, json_encode($data['solution'] ?? null, JSON_OPTIONS));
     file_put_contents($temp_asset, json_encode($data['asset'], JSON_OPTIONS));
     
-    // Find Python script
-    $python_script = MAIL_AGENT_ROOT . '/mail_agent/utils/save_json.py';
+    // FIXED: Corrected path (removed double mail_agent/)
+    $python_script = MAIL_AGENT_ROOT . '/utils/save_json.py';
     
     if (!file_exists($python_script)) {
         // Cleanup temp files
