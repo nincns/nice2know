@@ -125,6 +125,25 @@ define('JSON_OPTIONS', JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAP
 // HELPER FUNCTIONS
 // ============================================================================
 
+// Debug logging function
+function debug_log($message, $data = null) {
+    if (!DEBUG_MODE) {
+        return;
+    }
+    
+    $log_message = "[DEBUG] $message";
+    
+    if ($data !== null) {
+        if (is_array($data) || is_object($data)) {
+            $log_message .= ": " . print_r($data, true);
+        } else {
+            $log_message .= ": " . $data;
+        }
+    }
+    
+    error_log($log_message);
+}
+
 // Verify critical directories exist
 function verify_directories() {
     $required_dirs = [
@@ -241,7 +260,7 @@ function find_timestamp_from_mail_id($mail_id) {
             // Format: YYYYMMDD_HHMMSS_problem.json
             $filename = basename($file);
             if (preg_match('/^(\d{8}_\d{6})_problem\.json$/', $filename, $matches)) {
-                error_log("Found timestamp for mail_id $mail_id: " . $matches[1]);
+                debug_log("Found timestamp for mail_id", $mail_id . " → " . $matches[1]);
                 return $matches[1];
             }
         }
@@ -282,7 +301,7 @@ function get_json_files_for_timestamp($timestamp) {
         if (file_exists($filepath)) {
             $result[$type] = $filepath;
         } else {
-            error_log("Warning: $type file not found: $filepath");
+            debug_log("Warning: $type file not found", $filepath);
         }
     }
     
@@ -291,10 +310,13 @@ function get_json_files_for_timestamp($timestamp) {
 
 // Load all JSONs for a mail_id
 function load_data_by_mail_id($mail_id) {
+    debug_log("Loading data for mail_id", $mail_id);
+    
     // Find timestamp
     $timestamp = find_timestamp_from_mail_id($mail_id);
     
     if (!$timestamp) {
+        debug_log("Timestamp not found for mail_id", $mail_id);
         return null;
     }
     
@@ -305,6 +327,8 @@ function load_data_by_mail_id($mail_id) {
         error_log("No JSON files found for timestamp: $timestamp");
         return null;
     }
+    
+    debug_log("Found JSON files", array_keys($files));
     
     // Load all files
     $data = [
@@ -325,6 +349,7 @@ function load_data_by_mail_id($mail_id) {
         return null;
     }
     
+    debug_log("Successfully loaded data", array_keys($data));
     return $data;
 }
 
