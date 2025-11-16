@@ -112,10 +112,19 @@ def get_confirm_url(mail_id: str) -> str:
     base_url = base_url.rstrip('/')
     return f"{base_url}/confirm.php?mail_id={mail_id}"
 
-def get_admin_email() -> str:
-    """Get admin email from config"""
+def get_support_email() -> str:
+    """
+    Get support/admin email from config
+    
+    Returns:
+        Support email address
+    """
     config = load_application_config()
     return config.get('admin', {}).get('email', 'support@nice2know.local')
+
+def get_admin_email() -> str:
+    """Get admin email from config (alias for get_support_email)"""
+    return get_support_email()
 
 def get_app_name() -> str:
     """Get application name from config"""
@@ -152,6 +161,7 @@ if __name__ == '__main__':
     print(f"Version:            {config.get('version', 'unknown')}")
     print(f"Base URL:           {config.get('base_url', 'not set')}")
     print(f"Admin Email:        {get_admin_email()}")
+    print(f"Support Email:      {get_support_email()}")
     print(f"Storage Path:       {get_storage_path()}")
     print(f"Max Attachment:     {get_max_attachment_size()} MB")
     print(f"Processed Folder:   {get_processed_folder()}")
