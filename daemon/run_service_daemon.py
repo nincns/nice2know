@@ -25,23 +25,44 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 import argparse
 
-# Auto-detect mail_agent/ directory
-def find_mail_agent_root(start_path: Path) -> Path:
-    """Find mail_agent root by looking for key directories"""
+# Auto-detect project root
+def find_project_root(start_path: Path) -> Path:
+    """
+    Find project root by looking for mail_agent/ subdirectory
+    Supports both daemon/ and mail_agent/ as script location
+    """
     current = start_path
+    
+    # Try up to 5 levels up
     for _ in range(5):
+        # Check if we're in mail_agent/ (has agents/, catalog/, config/)
         if (current / 'agents').exists() and \
            (current / 'catalog').exists() and \
            (current / 'config').exists():
             return current
+        
+        # Check if mail_agent/ is a sibling or child directory
+        if (current / 'mail_agent').exists():
+            mail_agent = current / 'mail_agent'
+            if (mail_agent / 'agents').exists():
+                return mail_agent
+        
+        # Go up one level
         if current.parent != current:
             current = current.parent
         else:
             break
+    
+    # Fallback: assume mail_agent is sibling
+    if start_path.parent != start_path:
+        sibling = start_path.parent / 'mail_agent'
+        if sibling.exists():
+            return sibling
+    
     return start_path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKING_DIR = find_mail_agent_root(SCRIPT_DIR)
+WORKING_DIR = find_project_root(SCRIPT_DIR)
 sys.path.insert(0, str(WORKING_DIR))
 
 # Colors
@@ -138,8 +159,10 @@ class Nice2KnowService:
         print(f"\n{BLUE}{'=' * 70}{NC}")
         print(f"{BLUE}{BOLD}Nice2Know Service Daemon{NC}")
         print(f"{BLUE}{'=' * 70}{NC}")
-        print(f"Version:          {self.app_config.get('version', '1.0.0')}")
+        print(f"Script Location:  {SCRIPT_DIR}")
         print(f"Working Dir:      {WORKING_DIR}")
+        print(f"Config Dir:       {WORKING_DIR / 'config' / 'connections'}")
+        print(f"Catalog Dir:      {WORKING_DIR / 'catalog'}")
         print(f"Storage Base:     {self.storage_base}")
         print(f"Interval:         {self.interval}s")
         print(f"Dry Run:          {self.dry_run}")
