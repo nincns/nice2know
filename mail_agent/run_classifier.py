@@ -4,6 +4,8 @@ Nice2Know - Classify Incoming Mails (Stage 0)
 Processes all mails in storage/mails/ and creates classification JSONs
 This runs BEFORE run_extract.py to enable intelligent routing
 
+IMPROVED: Automatically decodes .eml to plaintext before LLM processing
+
 Usage:
   python run_classifier.py              # Classify all unclassified mails
   python run_classifier.py --limit 5    # Classify max 5 mails
@@ -125,6 +127,7 @@ def get_unclassified_mails(mail_dir: Path, classified_dir: Path, reclassify: boo
 def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tuple[bool, Optional[Path], Optional[dict]]:
     """
     Classify mail using llm_request.py
+    Automatically decodes .eml to plaintext before LLM processing
     
     Args:
         mail_path: Path to .eml file
@@ -146,7 +149,44 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
     
     output_path = output_dir / f"{mail_timestamp}_identifier.json"
     
-    # Build command
+    # === NEW: Parse .eml and extract plaintext ===
+    temp_txt = None
+    try:
+        sys.path.insert(0, str(WORKING_DIR))
+        from agents.mail_parser import MailParser
+        
+        parser = MailParser()
+        with open(mail_path, 'rb') as f:
+            raw_email = f.read()
+        
+        parsed = parser.parse(raw_email)
+        if not parsed:
+            print(f"{RED}✗ (parsing failed){NC}")
+            return False, None, None
+        
+        # Get plaintext (prefer plain over HTML)
+        plaintext = parsed['body']['plain'] or parsed['body']['html']
+        
+        if not plaintext:
+            print(f"{RED}✗ (no body content){NC}")
+            return False, None, None
+        
+        # Create temporary .txt file for LLM
+        temp_txt = mail_path.parent / f"{mail_path.stem}_decoded.txt"
+        with open(temp_txt, 'w', encoding='utf-8') as f:
+            f.write(plaintext)
+        
+        # Use decoded .txt instead of .eml
+        mailbody_path = temp_txt
+        
+    except Exception as e:
+        print(f"{RED}✗ (decode error: {str(e)[:50]}){NC}")
+        # Cleanup temp file on error
+        if temp_txt and temp_txt.exists():
+            temp_txt.unlink()
+        return False, None, None
+    
+    # Build command with decoded plaintext
     llm_script = WORKING_DIR / 'agents' / 'llm_request.py'
     
     cmd = [
@@ -154,7 +194,7 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
         str(llm_script),
         '--pre_prompt', str(WORKING_DIR / prompt_file),
         '--json', str(WORKING_DIR / schema_file),
-        '--mailbody', str(mail_path),
+        '--mailbody', str(mailbody_path),
         '--export', str(output_path)
     ]
     
@@ -168,6 +208,10 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
             text=True,
             timeout=timeout
         )
+        
+        # Cleanup temp file
+        if temp_txt and temp_txt.exists():
+            temp_txt.unlink()
         
         if result.returncode == 0 and output_path.exists():
             # Load and return classification data
@@ -187,9 +231,15 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
             
     except subprocess.TimeoutExpired:
         print(f"{RED}✗ TIMEOUT{NC}")
+        # Cleanup temp file on timeout
+        if temp_txt and temp_txt.exists():
+            temp_txt.unlink()
         return False, None, None
     except Exception as e:
         print(f"{RED}✗ {e}{NC}")
+        # Cleanup temp file on error
+        if temp_txt and temp_txt.exists():
+            temp_txt.unlink()
         return False, None, None
 
 def display_classification_summary(classification: dict):
@@ -278,6 +328,9 @@ def main():
     if args.reclassify:
         print(f"{YELLOW}Mode:                   RE-CLASSIFY (overwrite existing){NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
+    print(f"{CYAN}NOTE: .eml files are automatically decoded to plaintext{NC}")
+    print(f"{CYAN}      for LLM processing (originals preserved){NC}")
+    print(f"{BLUE}{'=' * 60}{NC}")
     print()
     
     # Get unclassified mails
@@ -356,11 +409,11 @@ def main():
             print(f"    {urgency:20s}: {count}")
         
         # Count routing decisions
-        extract_problem = sum(1 for c in classifications 
+        extract_problem = sum(1 for c in classifications
                              if c.get('workflow_routing', {}).get('should_extract_problem', False))
-        extract_solution = sum(1 for c in classifications 
+        extract_solution = sum(1 for c in classifications
                               if c.get('workflow_routing', {}).get('should_extract_solution', False))
-        extract_assets = sum(1 for c in classifications 
+        extract_assets = sum(1 for c in classifications
                             if c.get('workflow_routing', {}).get('should_extract_assets', False))
         
         print(f"\n  Workflow Routing:")
