@@ -4,7 +4,9 @@ Nice2Know - Classify Incoming Mails (Stage 0)
 Processes all mails in storage/mails/ and creates classification JSONs
 This runs BEFORE run_extract.py to enable intelligent routing
 
-IMPROVED: Automatically decodes .eml to plaintext before LLM processing
+IMPROVED: 
+- Automatically decodes .eml to plaintext before LLM processing
+- Extracts mail_id from filename and adds it to classification JSON
 
 Usage:
   python run_classifier.py              # Classify all unclassified mails
@@ -124,10 +126,70 @@ def get_unclassified_mails(mail_dir: Path, classified_dir: Path, reclassify: boo
     # Sort oldest to newest (FIFO)
     return sorted(unclassified, key=get_timestamp)
 
+def extract_mail_id(mail_path: Path) -> str:
+    """
+    Extract hex mail_id from .eml filename
+    Format: YYYYMMDD_HHMMSS_<hex_mail_id>.eml
+    
+    Returns:
+        Hex mail_id or 'N/A' if not found
+    """
+    try:
+        filename = mail_path.stem  # Remove .eml extension
+        parts = filename.split('_')
+        
+        # Expected format: YYYYMMDD_HHMMSS_<hex_id>
+        if len(parts) >= 3:
+            # The hex ID is everything after the timestamp
+            hex_id = '_'.join(parts[2:])
+            
+            # Validate it looks like a hex string (allow underscores from message-id)
+            if hex_id and len(hex_id) > 0:
+                print(f"  {CYAN}Extracted mail_id: {hex_id}{NC}")
+                return hex_id
+        
+        print(f"{YELLOW}  Could not extract mail_id from filename: {mail_path.name}{NC}")
+        return 'N/A'
+        
+    except Exception as e:
+        print(f"{YELLOW}  Error extracting mail_id: {e}{NC}")
+        return 'N/A'
+
+def add_mail_id_to_json(json_path: Path, mail_id: str) -> bool:
+    """
+    Add mail_id field to classification JSON
+    
+    Args:
+        json_path: Path to classification JSON
+        mail_id: Mail ID to add
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Load existing JSON
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Add mail_id at root level
+        data['mail_id'] = mail_id
+        
+        # Save back
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        print(f"  {GREEN}✓ Added mail_id to classification JSON{NC}")
+        return True
+        
+    except Exception as e:
+        print(f"{RED}  ✗ Failed to add mail_id to JSON: {e}{NC}")
+        return False
+
 def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tuple[bool, Optional[Path], Optional[dict]]:
     """
     Classify mail using llm_request.py
     Automatically decodes .eml to plaintext before LLM processing
+    Adds mail_id from filename to the classification JSON
     
     Args:
         mail_path: Path to .eml file
@@ -147,9 +209,12 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
     else:
         mail_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
+    # Extract mail_id from filename
+    mail_id = extract_mail_id(mail_path)
+    
     output_path = output_dir / f"{mail_timestamp}_identifier.json"
     
-    # === NEW: Parse .eml and extract plaintext ===
+    # === Parse .eml and extract plaintext ===
     temp_txt = None
     try:
         sys.path.insert(0, str(WORKING_DIR))
@@ -214,11 +279,15 @@ def classify_mail(mail_path: Path, output_dir: Path, timeout: int = 300) -> Tupl
             temp_txt.unlink()
         
         if result.returncode == 0 and output_path.exists():
+            print(f"{GREEN}✓{NC}")
+            
+            # Add mail_id to the JSON
+            add_mail_id_to_json(output_path, mail_id)
+            
             # Load and return classification data
             try:
                 with open(output_path, 'r', encoding='utf-8') as f:
                     classification = json.load(f)
-                print(f"{GREEN}✓{NC}")
                 return True, output_path, classification
             except Exception as e:
                 print(f"{YELLOW}✓ (but couldn't parse JSON){NC}")
@@ -252,8 +321,10 @@ def display_classification_summary(classification: dict):
         content = classification.get('content_analysis', {})
         workflow = classification.get('workflow_routing', {})
         participants = classification.get('participants', {})
+        mail_id = classification.get('mail_id', 'N/A')
         
         print(f"\n  {MAGENTA}Classification Summary:{NC}")
+        print(f"    Mail-ID:     {CYAN}{mail_id}{NC}")
         print(f"    Type:        {mail_class.get('type', 'unknown')}")
         print(f"    Confidence:  {mail_class.get('confidence', 0):.2f}")
         print(f"    Urgency:     {content.get('urgency_level', 'unknown')}")
@@ -330,6 +401,7 @@ def main():
     print(f"{BLUE}{'=' * 60}{NC}")
     print(f"{CYAN}NOTE: .eml files are automatically decoded to plaintext{NC}")
     print(f"{CYAN}      for LLM processing (originals preserved){NC}")
+    print(f"{CYAN}      Mail-ID is extracted from filename and added to JSON{NC}")
     print(f"{BLUE}{'=' * 60}{NC}")
     print()
     
