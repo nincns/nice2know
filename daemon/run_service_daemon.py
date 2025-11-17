@@ -83,6 +83,7 @@ class Nice2KnowService:
         self.dry_run = dry_run
         self.running = True
         self.cycle_count = 0
+        self.shutdown_requested = False
         
         # Load configurations
         self.app_config = self._load_application_config()
@@ -109,8 +110,16 @@ class Nice2KnowService:
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully"""
+        if self.shutdown_requested:
+            # Second signal - force exit
+            signal_name = 'SIGINT' if signum == signal.SIGINT else 'SIGTERM'
+            print(f"\n{RED}Second {signal_name} received, forcing shutdown...{NC}")
+            sys.exit(0)
+        
         signal_name = 'SIGINT' if signum == signal.SIGINT else 'SIGTERM'
         print(f"\n{YELLOW}Received {signal_name}, shutting down gracefully...{NC}")
+        print(f"{YELLOW}(Press Ctrl+C again to force quit){NC}")
+        self.shutdown_requested = True
         self.running = False
     
     def _load_application_config(self) -> Dict:
@@ -462,13 +471,23 @@ class Nice2KnowService:
     def _send_confirmation(self, timestamp: str) -> bool:
         """Send confirmation mail using run_send_response.py"""
         # Check prerequisites: problem, solution, asset JSONs must exist
-        required_jsons = ['problem', 'solution', 'asset']
+        required_jsons = ['problem', 'asset']  # Solution is optional
         
         for json_type in required_jsons:
             json_path = self.processed_dir / f"{timestamp}_{json_type}.json"
             if not json_path.exists():
                 print(f"    {RED}✗ Missing prerequisite: {json_path.name}{NC}")
                 return False
+        
+        # Check if mail still exists (not already sent)
+        mail_files = list(self.mail_dir.glob(f"{timestamp}_*.eml"))
+        if not mail_files:
+            # Mail might be in processed/ directory
+            mail_files = list(self.processed_dir.glob(f"{timestamp}_*.eml"))
+        
+        if not mail_files:
+            print(f"    {YELLOW}⚠ Mail already processed/sent: {timestamp}{NC}")
+            return True  # Not an error, just already done
         
         # Run confirmation mail script
         success = self._run_script('run_send_response.py', timeout=120)
@@ -544,7 +563,24 @@ class Nice2KnowService:
         # Step 3: Process each classification
         print(f"\n{CYAN}[STEP 3] Processing workflows...{NC}")
         
+        # Track processed timestamps to avoid duplicates
+        processed_timestamps = set()
+        
         for classification in classifications:
+            # Extract timestamp
+            json_path = classification.get('_json_path')
+            if not json_path:
+                continue
+            
+            timestamp = '_'.join(json_path.stem.split('_')[:2])
+            
+            # Skip if already processed in this cycle
+            if timestamp in processed_timestamps:
+                print(f"\n{YELLOW}Skipping duplicate: {timestamp}{NC}")
+                continue
+            
+            processed_timestamps.add(timestamp)
+            
             # Match to workflow
             workflow = self.match_workflow(classification)
             
@@ -593,8 +629,14 @@ class Nice2KnowService:
                 self.process_cycle()
                 
                 if self.running:
-                    print(f"{CYAN}Waiting {self.interval} seconds before next cycle...{NC}\n")
-                    time.sleep(self.interval)
+                    print(f"{CYAN}Waiting {self.interval} seconds before next cycle...{NC}")
+                    print(f"{YELLOW}Press Ctrl+C to stop{NC}\n")
+                    
+                    # Sleep in small intervals to allow interruption
+                    elapsed = 0
+                    while elapsed < self.interval and self.running:
+                        time.sleep(1)  # Sleep 1 second at a time
+                        elapsed += 1
                     
             except KeyboardInterrupt:
                 print(f"\n{YELLOW}Keyboard interrupt received{NC}")
@@ -607,7 +649,11 @@ class Nice2KnowService:
                 
                 if self.running:
                     print(f"{YELLOW}Waiting {self.interval} seconds before retry...{NC}\n")
-                    time.sleep(self.interval)
+                    # Also interruptible on error
+                    elapsed = 0
+                    while elapsed < self.interval and self.running:
+                        time.sleep(1)
+                        elapsed += 1
         
         print(f"\n{GREEN}Service daemon stopped gracefully{NC}\n")
 
