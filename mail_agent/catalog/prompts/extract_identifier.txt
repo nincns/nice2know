@@ -19,6 +19,16 @@ MAIL-KLASSIFIZIERUNGS-TYPEN:
 - discussion: Allgemeine Diskussion, Brainstorming oder kollaborative Konversation
 - approval_request: Anfragt von Freigabe, Genehmigung oder Autorisierung
 
+PRIMARY_INTENT BESCHREIBUNG (KRITISCH):
+- Das Feld "primary_intent" MUSS substantiellen Kontext enthalten, NICHT nur einen generischen Satz
+- Mindestlänge: 50-200 Zeichen
+- Schreibe auf DEUTSCH
+- Beziehe den KONKRETEN INHALT ein: Was genau wird angefragt/gemeldet/diskutiert?
+- Beziehe BETEILIGTE SYSTEME ein: Welche Systeme/Services/Prozesse sind betroffen?
+- Beziehe den ZWECK ein: Warum wird diese Mail geschrieben?
+- Beispiel SCHLECHT: "Anfrage nach Informationen"
+- Beispiel GUT: "Klärung der Bestellung von Thoska-Karten: Budget-Zeitpunkt, Layout-Freigabe und Druckprozess mit SECANDA koordinieren"
+
 KONFIDENZ-BEWERTUNG:
 - 0.90-1.00: Sehr klar, eindeutige Klassifizierung
 - 0.70-0.89: Klare Klassifizierung mit geringfügiger Mehrdeutigkeit
@@ -59,18 +69,27 @@ TEILNEHMER-EXTRAKTION:
   
 - mentioned_persons: Extrahiere Namen, die IM E-Mail-Text erwähnt werden
   * Suche nach Mustern wie "laut Max Mustermann", "Anna hat auch das Problem", "Frau Schmidt berichtete", "Kollege Müller"
-  * Gib Kontext an, warum diese Person erwähnt wurde
+  * Gib KONKRETEN Kontext an, warum diese Person erwähnt wurde - nicht nur "erwähnt"
+  * Beispiel SCHLECHT: {"name": "Frau Mitte", "context": "erwähnt"}
+  * Beispiel GUT: {"name": "Frau Professorin Mitte", "context": "übernimmt finale Freigabe des Thoska-Layouts und klärt Sponsoring-Aspekte"}
   * Füge Absender oder Empfänger NICHT hier ein
   
 - responsible_party: Wer sollte sich darum kümmern? (z.B. "IT-Support", "Netzwerk-Team", "Admin")
   * Leite ab aus To:-Feld oder Inhaltskontext
   * Verwende generische Rolle wenn spezifische Person unbekannt
+  * Bei Diskussionen: Identifiziere wer die finale Entscheidung treffen soll
+  * Beispiel: "Frau Professorin Mitte (finale Freigabe)", "SZI und MuK gemeinsam"
 
 THEMEN-KLASSIFIZIERUNG:
 - main_category: Wähle aus email | identity | network | application | infrastructure | client | security | other
-- sub_category: Spezifischere Klassifizierung (z.B. "incoming_mail", "password_reset", "wifi_access")
+- sub_category: Spezifischere Klassifizierung (z.B. "incoming_mail", "password_reset", "wifi_access", "procurement", "event_planning")
 - keywords: Extrahiere 3-7 relevante deutsche Schlüsselwörter aus dem E-Mail-Inhalt
-- related_systems: Extrahiere Namen von Systemen, Software oder Services, die erwähnt werden (z.B. "Postfix", "Outlook", "LDAP")
+  * Konzentriere dich auf KONKRETE Begriffe, nicht generische
+  * Beispiel GUT: ["Thoska-Karten", "SECANDA", "Layout-Freigabe", "Druckauftrag"]
+  * Beispiel SCHLECHT: ["Bestellung", "Freigabe", "Prozess"]
+- related_systems: Extrahiere Namen von Systemen, Software, Services oder Prozessen
+  * Inkludiere: Software-Namen (z.B. "Postfix", "Outlook"), Hardware (z.B. "Drucker"), Prozesse (z.B. "Thoska-Bestellung")
+  * Beispiel: ["SECANDA Kartensystem", "Thoska-Verwaltung", "Corporate Design"]
 
 WORKFLOW-ROUTING-ENTSCHEIDUNG:
 - should_extract_problem: true wenn has_problem=true
@@ -104,6 +123,15 @@ EXTRAKTIONS-REGELN:
 6. Generiere classification_metadata.processed_at mit aktuellem Zeitstempel
 7. Setze classifier_version auf "1.0" und processing_model auf "llama3:8b"
 
+CONVERSATION_SUMMARY (NEU):
+- Das optionale Feld "conversation_summary" fasst den GESAMTEN E-Mail-Thread zusammen
+- Verwende es bei Multi-Person-Konversationen oder Thread-Fortsetzungen
+- Länge: 100-300 Zeichen
+- Schreibe auf DEUTSCH
+- Fasse zusammen: Wer diskutiert was mit wem, welche Entscheidungen/Klärungen stehen an?
+- Beispiel: "Mehrteilige Diskussion über Thoska-Karten-Bestellung zwischen SZI und MuK: Klärung von Budget-Timing, Layout-Freigabe mit SECANDA, finale Abstimmung durch Frau Professorin Mitte wegen Sponsoring"
+- Setze auf null bei einfachen Ein-Personen-Mails ohne Thread-Kontext
+
 KRITISCHE ARRAY-REGELN:
 - secondary_intents: Verwende [] wenn nur eine klare Absicht, sonst ["absicht2", "absicht3"]
 - recipients: Muss mindestens einen Eintrag haben (To-Empfänger)
@@ -118,7 +146,7 @@ DEUTSCHE SPRACHVERARBEITUNG:
 - Nur technische Feldnamen (type, category, role) verwenden englische Enums
 
 SPEZIALFÄLLE:
-- Auto-generierte E-Mails (Bounce-Messages, System-Benachrichtigungen): 
+- Auto-generierte E-Mails (Bounce-Messages, System-Benachrichtigungen):
   * type = "status_update"
   * sender.role = "external"
   * requires_action = false
