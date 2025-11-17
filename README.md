@@ -17,671 +17,463 @@
 - **Mail-Parsing**: Extraktion von Headers, Body und Metadaten
 - **Anhang-Verwaltung**: Kategorisierte Speicherung (images/documents/logs)
 - **Automatische Mail-Archivierung**: Verschiebt verarbeitete Mails in IMAP-Ordner
+- **Zwei-Stufen-Workflow**: 
+  - `run_agent.py`: Fetcht Mails von IMAP → `storage/mails/`
+  - `run_extract.py`: Verarbeitet Mails durch OLLAMA → JSON-Generierung
 
 #### KI-gestützte Extraktion
 - **OLLAMA-Integration**: Lokale KI-Verarbeitung (datenschutzkonform, kostenfrei)
 - **3-fache JSON-Generierung**: 
   - **Problem-JSON**: Kompakt, suchoptimiert
-  - **Solution-JSON**: Detailliert, wiederverwendbar
+  - **Solution-JSON**: Detailliert, wiederverwendbar  
   - **Asset-JSON**: IT-System-Katalog
-- **Prompt-Engineering**: Optimierte Prompts für präzise Extraktion
+- **Prompt-Engineering**: Optimierte Prompts mit Demo-Daten für präzise Extraktion
 - **Schema-Validierung**: JSON-Schema-Templates für konsistente Datenstruktur
 
 #### Qualitätssicherung & Fehlerbehandlung
 - **Fehler-Tracking**: Fehlgeschlagene Extractions in `failed/` Ordner
 - **Erfolgs-Archivierung**: Vollständige JSONs in `processed/`
 - **Retry-Mechanismus**: Manuelle Nachbearbeitung möglich
-- **Quality-Analyzer**: Erkennt fehlende/unklare Felder
+- **Quality-Analyzer**: 
+  - Analysiert alle generierten JSONs auf Vollständigkeit
+  - Erkennt fehlende Pflichtfelder
+  - Identifiziert unklare Werte (z.B. "unknown", "n/a")
+  - Berechnet Completeness-Score (0-100%)
+  - Kategorisiert Felder nach "critical", "important", "optional"
 
-#### Bestätigungsmails
-- **Automatische Confirmation**: HTML-Mail mit extrahierten Daten
-- **Qualitäts-Indikatoren**: Zeigt Vollständigkeit der Extraktion
-- **Edit-Links**: Ermöglicht Nutzer-Korrekturen (vorbereitet)
+#### Bestätigungsmails (v2)
+- **Automatische Confirmation**: HTML-Mail mit allen extrahierten Daten
+- **Qualitäts-Dashboard**: Zeigt Vollständigkeit (✓ complete, ⚠ missing, ❓ unclear)
+- **Dreifach-Ansicht**: Problem, Solution, Asset in strukturierten Sektionen
+- **Interaktive Links**: 
+  - Edit-Link (Magic Link) zum Ergänzen fehlender Felder
+  - Confirm-Link zur sofortigen Bestätigung
+- **Fehlende-Felder-Liste**: Zeigt Anchor-Links zu allen unvollständigen Feldern
+- **Template-Engine**: Chevron/Mustache für flexible HTML-Generierung
+- **Error-Handling**: Fallback bei Mail-Versand-Fehlern
+
+#### Konfigurationsmanagement
+- **Dynamische Config-Loading**: Automatische Pfadauflösung basierend auf Script-Location
+- **Einheitliche Config-Struktur**: `config/mail_config.json` und `config/secrets.json`
+- **ZeroTier-Support**: Funktioniert über verschlüsselte Netzwerk-Verbindungen
+- **Permission-Management**: Korrekte Berechtigungen für PHP/www-data-Zugriff
 
 ### 🚧 In Entwicklung (Phase 2)
 
-- **PostgreSQL-Integration**: Schema vorhanden, Implementierung folgt
+- **PostgreSQL-Integration**: Schema vorhanden, Import-Funktionalität in Entwicklung
+- **Magic-Link-Backend**: Web-Interface zum Editieren extrahierter Daten
 - **Anhang-Analyse**: OCR und Textextraktion aus Bildern/PDFs
-- **Case-JSON**: Verknüpfung von Problem-Solution-Asset
-- **Web-API**: REST-Endpunkte für CRUD-Operationen
-
-### 📋 Geplant (Phase 3)
-
-- Full-Text-Suche mit PostgreSQL
-- Web-UI für Knowledge-Base-Zugriff
-- Automatische Lösungsvorschläge
-- Metriken und Auswertungen
+- **REST-API**: FastAPI für CRUD-Operationen
+- **OLLAMA GPU-Acceleration**: Umstellung von CPU auf GPU zur Vermeidung von Timeouts
 
 ---
 
-## 🏗️ Systemarchitektur
-
-### 2-Schritt-Pipeline
+## 📂 Projektstruktur
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     SCHRITT 1: run_agent.py                 │
-│                     Mail Collection & Storage                │
-└─────────────────────────────────────────────────────────────┘
-
-┌──────────────────┐
-│   IMAP Mailbox   │
-└────────┬─────────┘
-         │ (IMAP/SSL)
-         ▼
-┌──────────────────┐
-│   Mail Fetcher   │  ← Holt ungelesene Mails
-│  - Connect       │
-│  - Fetch         │
-│  - Parse         │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Storage: mails/  │  ← Speichert .eml Dateien
-│  Attachments     │  ← Kategorisiert Anhänge
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ IMAP: processed/ │  ← Verschiebt Mail auf Server
-└──────────────────┘
-
-
-┌─────────────────────────────────────────────────────────────┐
-│                   SCHRITT 2: run_extract.py                 │
-│                   JSON Extraction & Classification           │
-└─────────────────────────────────────────────────────────────┘
-
-┌──────────────────┐
-│ Storage: mails/  │  ← Liest alle .eml Dateien
-│  (unprocessed)   │     (älteste zuerst)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────────────────────┐
-│       OLLAMA LLM Engine          │  
-│  - extract_problem.txt           │
-│  - extract_solution.txt          │
-│  - extract_asset.txt             │
-│                                  │
-│  Timeout: 300s (5 min)           │
-└────────┬─────────────────────────┘
-         │
-         ├─── Erfolg (alle 3 JSONs) ────────────┐
-         │                                       ▼
-         │                            ┌──────────────────┐
-         │                            │ processed/       │
-         │                            │  - Mail (.eml)   │
-         │                            │  - problem.json  │
-         │                            │  - solution.json │
-         │                            │  - asset.json    │
-         │                            └──────────────────┘
-         │
-         └─── Fehler (Timeout/Parse) ───────────┐
-                                                 ▼
-                                      ┌──────────────────┐
-                                      │ failed/          │
-                                      │  - Mail (.eml)   │
-                                      │  (manuelle       │
-                                      │   Nacharbeit)    │
-                                      └──────────────────┘
+nice2know/
+├── mail_agent/
+│   ├── agents/                          # ✅ Kernkomponenten
+│   │   ├── imap_fetcher.py              # IMAP-Mail-Abruf
+│   │   ├── mail_parser.py               # E-Mail-Parsing
+│   │   ├── attachment_handler.py        # Anhang-Verwaltung
+│   │   └── llm_request.py               # OLLAMA-Integration
+│   │
+│   ├── catalog/                         # ✅ Prompt- & Schema-Bibliothek
+│   │   ├── prompts/
+│   │   │   ├── extract_problem.txt      # Problem-Extraktion
+│   │   │   ├── extract_solution.txt     # Solution-Extraktion
+│   │   │   └── extract_asset.txt        # Asset-Identifikation
+│   │   │
+│   │   ├── json_store/                  # JSON-Schema-Templates
+│   │   │   ├── problem_schema.json
+│   │   │   ├── solution_schema.json
+│   │   │   └── asset_schema.json
+│   │   │
+│   │   └── mail/                        # ✅ Mail-Templates
+│   │       ├── added_knowledge_mail.html # Confirmation Mail Template
+│   │       └── mail_variables.json       # Template-Variablen
+│   │
+│   ├── config/                          # ✅ Konfiguration
+│   │   ├── mail_config.json             # IMAP/SMTP-Einstellungen
+│   │   └── secrets.json                 # Credentials (gitignored)
+│   │
+│   ├── storage/                         # ✅ Dateisystem-Storage
+│   │   ├── mails/                       # Roh-E-Mails (.eml)
+│   │   ├── attachments/
+│   │   │   ├── images/
+│   │   │   ├── documents/
+│   │   │   └── logs/
+│   │   ├── processed/                   # ✅ Erfolgreiche JSONs
+│   │   ├── failed/                      # ✅ Fehlgeschlagene Extractions
+│   │   └── sent/                        # ✅ Archivierte verarbeitete Mails
+│   │
+│   ├── utils/                           # ✅ Hilfsfunktionen
+│   │   ├── logger.py                    # Strukturiertes Logging
+│   │   ├── file_handler.py              # Datei-Operationen
+│   │   ├── credentials.py               # Secrets-Manager
+│   │   └── quality_analyzer.py          # ✅ JSON-Qualitätsanalyse
+│   │
+│   ├── run_agent.py                     # ✅ Mail-Fetching
+│   ├── run_extract.py                   # ✅ JSON-Extraktion
+│   ├── run_send_response.py             # ✅ Confirmation Mails
+│   └── test_mail.py                     # IMAP/SMTP-Test
+│
+├── documents/                           # 📚 Dokumentation
+│   ├── nice2know_json_schema_referenz.md
+│   └── nice2know_projektplan.md
+│
+├── setup.sh                             # Environment-Setup
+├── requirements.txt                     # Python-Dependencies
+└── README.md                            # Diese Datei
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Installation & Setup
 
 ### Voraussetzungen
 
 - **Python 3.8+**
-- **OLLAMA** installiert und laufend
-- **IMAP-fähiges E-Mail-Konto**
-- **GPU empfohlen** für OLLAMA (CPU möglich, aber langsam)
+- **OLLAMA** (lokal installiert, llama3:8b oder llama3.2:latest)
+- **IMAP/SMTP Mail-Server** (Zugangsdaten erforderlich)
+- Optional: **PostgreSQL 14+** (für Phase 2)
 
 ### Installation
 
-1. **Repository klonen**
 ```bash
-git clone https://github.com/nincns/nice2know.git
+# Repository klonen
+git clone https://github.com/yourusername/nice2know.git
 cd nice2know
-```
 
-2. **Python Virtual Environment**
-```bash
+# Setup-Script ausführen
 chmod +x setup.sh
 ./setup.sh
-source venv/bin/activate  # Linux/Mac
-# oder
-venv\Scripts\activate     # Windows
-```
 
-3. **OLLAMA-Modell installieren**
-```bash
-# Empfohlen: llama3:8b (schnell, präzise)
-ollama pull llama3:8b
-
-# Alternative: llama3.2 (neuere Version)
-ollama pull llama3.2:latest
-
-# GPU-Check
-ollama list
-# Sollte zeigen: Modell läuft auf GPU, nicht CPU
-```
-
-4. **Konfiguration**
-```bash
+# Oder manuell:
 cd mail_agent
-
-# Secrets erstellen
-cp config/secrets.json.example config/secrets.json
-nano config/secrets.json  # IMAP/SMTP Zugangsdaten eintragen
-
-# Mail-Config anpassen
-nano config/connections/mail_config.json  # Host/Port anpassen
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-5. **Verbindung testen**
-```bash
-python tests/test_mail.py  # Testet IMAP + SMTP
+### Konfiguration
 
-cd agents
-python llm_request.py --test  # Testet OLLAMA
-```
-
-6. **Pipeline starten**
-```bash
-# Schritt 1: Mails holen
-python run_agent.py
-
-# Schritt 2: JSONs extrahieren
-python run_extract.py
-```
-
----
-
-## 📋 Konfiguration
-
-### config/secrets.json
+#### 1. Mail-Konfiguration (`config/mail_config.json`)
 
 ```json
 {
-  "mail": {
-    "imap_username": "support@example.com",
-    "imap_password": "your-imap-password",
-    "smtp_username": "support@example.com",
-    "smtp_password": "your-smtp-password"
-  },
-  "llm": {
-    "ollama": {
-      "base_url": "http://localhost:11434",
-      "model": "llama3:8b"
+    "imap": {
+        "server": "mail.example.com",
+        "port": 993,
+        "use_ssl": true,
+        "mailbox": "INBOX"
+    },
+    "smtp": {
+        "server": "mail.example.com",
+        "port": 587,
+        "use_starttls": true,
+        "from_address": "support@example.com"
     }
-  }
 }
 ```
 
-### config/connections/mail_config.json
+#### 2. Zugangsdaten (`config/secrets.json`)
 
 ```json
 {
-  "imap": {
-    "host": "mail.example.com",
-    "port": 993,
-    "use_ssl": true,
-    "mailbox": "INBOX"
-  },
-  "smtp": {
-    "host": "mail.example.com",
-    "port": 25,
-    "use_ssl": false,
-    "use_starttls": true,
-    "from_address": "support@example.com",
-    "from_name": "Nice2Know System"
-  }
+    "imap": {
+        "username": "your-email@example.com",
+        "password": "your-password"
+    },
+    "smtp": {
+        "username": "your-email@example.com",
+        "password": "your-password"
+    }
 }
 ```
 
-### config/connections/application.json
+⚠️ **Wichtig:** `secrets.json` ist in `.gitignore` und wird NIE committet!
 
-```json
-{
-  "app_name": "Nice2Know",
-  "version": "1.0.0",
-  "storage": {
-    "base_path": "./storage",
-    "max_attachment_size_mb": 50
-  },
-  "logging": {
-    "level": "INFO",
-    "file": "logs/mail_agent.log"
-  },
-  "filters": {
-    "mark_as_read": false,
-    "move_to_processed": true,
-    "processed_folder": "processed"
-  }
-}
-```
-
----
-
-## 📊 JSON-Datenstruktur
-
-nice2know erzeugt **3 separate JSON-Strukturen** pro Support-Fall:
-
-### 1. Problem JSON (Kompakt, suchoptimiert)
-
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_problem",
-  "id": "prob_abc123...",
-  "mail_id": "abc123...",
-  "asset_id": "asset_outlook_eah_01",
-  "timestamp": "2025-11-15T14:53:24Z",
-  "reporter": {
-    "name": "Max Mustermann",
-    "email": "max@example.com",
-    "department": "IT"
-  },
-  "problem": {
-    "title": "Outlook Senden-Button fehlt",
-    "description": "Menüband minimiert, Senden-Button nicht sichtbar",
-    "symptoms": [
-      "Senden-Button nicht sichtbar",
-      "Menüband minimiert"
-    ],
-    "error_messages": [],
-    "context": "Outlook Mail-Client"
-  },
-  "classification": {
-    "category": "client",
-    "severity": "medium",
-    "affected_users": "single user"
-  },
-  "status": "resolved"
-}
-```
-
-### 2. Solution JSON (Detailliert, wiederverwendbar)
-
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_solution",
-  "id": "sol_xyz789...",
-  "problem_ids": ["prob_abc123..."],
-  "asset_id": "asset_outlook_eah_01",
-  "timestamp": "2025-11-15T14:53:24Z",
-  "solution": {
-    "title": "Outlook Menüband wiederherstellen",
-    "type": "configuration",
-    "approach": "permanent_fix",
-    "description": "Durch STRG+F1 wird das minimierte Menüband wiederhergestellt",
-    "prerequisites": [],
-    "steps": [
-      {
-        "step_number": 1,
-        "action": "Menüband öffnen",
-        "details": "STRG + F1 drücken oder Pfeil-Symbol klicken",
-        "command": "STRG + F1",
-        "expected_result": "Menüband wird sichtbar",
-        "estimated_duration": "30 sec"
-      }
-    ],
-    "warnings": [],
-    "alternatives": []
-  },
-  "metadata": {
-    "complexity": "low",
-    "estimated_time": "2 min",
-    "success_rate": 1.0,
-    "reusability_score": 0.8
-  }
-}
-```
-
-### 3. Asset JSON (IT-System-Katalog)
-
-```json
-{
-  "schema_version": "1.0.0",
-  "type": "n2k_asset",
-  "id": "asset_outlook_eah_01",
-  "created_at": "2025-11-15T14:00:00Z",
-  "updated_at": "2025-11-15T14:53:24Z",
-  "asset": {
-    "name": "Microsoft Outlook",
-    "display_name": "Outlook Email Client",
-    "type": "mail_client",
-    "category": "client",
-    "description": "E-Mail-Client für Windows",
-    "status": "active",
-    "criticality": "medium"
-  },
-  "technical": {
-    "software": "Microsoft Outlook",
-    "version": "2021",
-    "platform": "Windows",
-    "deployment": "cloud"
-  },
-  "knowledge": {
-    "known_problems": ["prob_abc123..."],
-    "available_solutions": ["sol_xyz789..."],
-    "total_incidents": 1
-  }
-}
-```
-
----
-
-## 🔧 Workflow
-
-### Kompletter Durchlauf
+#### 3. OLLAMA-Check
 
 ```bash
-# Schritt 1: Mails vom Server holen
+# Prüfen ob OLLAMA läuft
+curl http://localhost:11434/api/tags
+
+# Modell laden (falls nicht vorhanden)
+ollama pull llama3.2:latest
+```
+
+---
+
+## 💻 Verwendung
+
+### Standard-Workflow
+
+```bash
+# Schritt 1: Mails von IMAP abrufen
 python run_agent.py
-# → Speichert .eml in storage/mails/
-# → Extrahiert Attachments nach storage/attachments/
-# → Verschiebt Mail auf Server in IMAP-Ordner "processed"
 
-# Schritt 2: JSONs extrahieren (älteste zuerst)
+# Schritt 2: Mails durch OLLAMA verarbeiten
 python run_extract.py
-# → Verarbeitet alle Mails in storage/mails/
-# → Bei Erfolg: Mail + JSONs → storage/processed/
-# → Bei Fehler: Mail → storage/failed/
 
-# Optional: Nur neueste Mail
-python run_extract.py --latest
-
-# Optional: Max 5 Mails
-python run_extract.py --limit 5
+# Schritt 3: Confirmation-Mails versenden
+python run_send_response.py
 ```
 
-### Loop-Modus (Automatisierung)
+### Einzelne Komponenten testen
 
 ```bash
-# Agent läuft kontinuierlich (alle 60 Sekunden)
-python run_agent.py --loop --interval 60
+# IMAP/SMTP-Verbindung testen
+python test_mail.py
 
-# In separatem Terminal: Extractor
-watch -n 300 "cd /opt/nice2know/mail_agent && python run_extract.py"
-# → Alle 5 Minuten neue Mails verarbeiten
-```
-
-### Dry-Run (Testen ohne Änderungen)
-
-```bash
-# Testet Mail-Abruf ohne Speichern
-python run_agent.py --dry-run
-```
-
----
-
-## 📁 Projektstruktur
-
-```
-nice2know/
-├── mail_agent/                      # Haupt-Modul
-│   ├── agents/                      # Kernkomponenten
-│   │   ├── imap_fetcher.py          # ✅ IMAP-Mail-Abruf
-│   │   ├── mail_parser.py           # ✅ E-Mail-Parsing
-│   │   ├── attachment_handler.py    # ✅ Anhang-Verwaltung
-│   │   └── llm_request.py           # ✅ OLLAMA-Integration
-│   │
-│   ├── catalog/                     # Prompt- und Schema-Bibliothek
-│   │   ├── prompts/                 # LLM-Prompts
-│   │   │   ├── extract_problem.txt  # ✅ Problem-Extraktion
-│   │   │   ├── extract_solution.txt # ✅ Lösungs-Extraktion
-│   │   │   └── extract_asset.txt    # ✅ Asset-Identifikation
-│   │   │
-│   │   ├── json_store/              # JSON-Schema-Templates
-│   │   │   ├── problem_schema.json  # ✅ Problem-Struktur
-│   │   │   ├── solution_schema.json # ✅ Solution-Struktur
-│   │   │   └── asset_schema.json    # ✅ Asset-Struktur
-│   │   │
-│   │   └── mail/                    # Mail-Templates
-│   │       └── added_knowledge_mail.html  # ✅ Confirmation Mail
-│   │
-│   ├── config/                      # Konfiguration
-│   │   ├── connections/             # Verbindungs-Configs
-│   │   │   ├── mail_config.json     # IMAP/SMTP-Einstellungen
-│   │   │   └── application.json     # App-Einstellungen
-│   │   └── secrets.json             # Credentials (nicht in Git!)
-│   │
-│   ├── storage/                     # Dateisystem-Storage
-│   │   ├── mails/                   # ⚙️  Unverarbeitete Mails
-│   │   ├── processed/               # ✅ Erfolgreiche Extractions
-│   │   ├── failed/                  # ❌ Fehlgeschlagene Extractions
-│   │   └── attachments/             # Kategorisierte Anhänge
-│   │       ├── images/              # Screenshots, Fotos
-│   │       ├── documents/           # PDFs, Docs
-│   │       └── logs/                # Log-Dateien
-│   │
-│   ├── utils/                       # Hilfsfunktionen
-│   │   ├── logger.py                # Logging
-│   │   ├── file_handler.py          # Datei-Ops
-│   │   ├── credentials.py           # Credentials-Manager
-│   │   └── analyze_json_quality.py  # ✅ Qualitäts-Analyse
-│   │
-│   ├── tests/                       # Test-Scripts
-│   │   ├── test_mail.py             # ✅ Connection-Test
-│   │   └── send_confirmation_mail.py # ✅ Bestätigungsmail-Test
-│   │
-│   ├── run_agent.py                 # ✅ Mail Collection
-│   └── run_extract.py               # ✅ JSON Extraction
-│
-├── documents/                       # Projektdokumentation
-│   ├── nice2know_json_schema_referenz.md
-│   └── nice2know_projektplan.md
-│
-├── setup.sh                         # Environment-Setup
-├── requirements.txt                 # Python-Dependencies
-└── README.md                        # Diese Datei
-```
-
----
-
-## 🧪 Verwendungsbeispiele
-
-### LLM Request (manuell)
-
-```bash
-# Problem aus E-Mail extrahieren
+# Einzelne Mail verarbeiten
 python agents/llm_request.py \
   --pre_prompt catalog/prompts/extract_problem.txt \
   --mailbody storage/mails/test.eml \
   --json catalog/json_store/problem_schema.json \
   --export storage/processed/problem.json
-
-# Solution extrahieren
-python agents/llm_request.py \
-  --pre_prompt catalog/prompts/extract_solution.txt \
-  --mailbody storage/mails/test.eml \
-  --json catalog/json_store/solution_schema.json \
-  --export storage/processed/solution.json
-```
-
-### Bestätigungsmail senden
-
-```bash
-# Sendet HTML-Mail mit extrahierten Daten
-python tests/send_confirmation_mail.py
-# → Lädt neueste JSONs aus processed/
-# → Analysiert Qualität
-# → Sendet Bestätigungsmail an Reporter
 ```
 
 ---
 
-## ⚡ Performance & Ressourcen
+## 📊 JSON-Schema-Übersicht
 
-### OLLAMA GPU vs CPU
+### Problem JSON
 
-**GPU (empfohlen):**
-- LLM-Extraktion: ~10-30 Sekunden pro Mail
-- Timeout: 300 Sekunden (mehr als ausreichend)
+```json
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_problem",
+  "id": "prob_uuid...",
+  "mail_id": "msg_uuid...",
+  "problem": {
+    "title": "Kurzbeschreibung",
+    "description": "Detaillierte Beschreibung",
+    "symptoms": ["Symptom 1", "Symptom 2"],
+    "affected_users": "Anzahl betroffener Nutzer",
+    "severity": "high",
+    "frequency": "continuous"
+  },
+  "asset_id": "asset_uuid...",
+  "status": "open"
+}
+```
 
-**CPU (langsam):**
-- LLM-Extraktion: 2-5 Minuten pro Mail
-- Timeout-Risiko bei komplexen Mails
-- → **Lösung**: OLLAMA mit GPU-Support neu installieren
+### Solution JSON
 
-### Ressourcen-Anforderungen
+```json
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_solution",
+  "id": "sol_uuid...",
+  "problem_ids": ["prob_uuid..."],
+  "solution": {
+    "approach": "Lösungsansatz",
+    "steps": ["Schritt 1", "Schritt 2"],
+    "tools_used": ["Tool 1", "Tool 2"],
+    "complexity": "medium",
+    "effectiveness": "Beurteilung der Wirksamkeit"
+  },
+  "metadata": {
+    "reusability_score": 0.8
+  }
+}
+```
 
-- **RAM**: 16GB+ empfohlen (für OLLAMA)
-- **GPU**: NVIDIA mit 8GB+ VRAM (optional, aber stark empfohlen)
-- **Disk**: 50GB+ (für Modelle und Anhänge)
-- **CPU**: 4+ Cores
+### Asset JSON
+
+```json
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_asset",
+  "id": "asset_uuid...",
+  "asset": {
+    "name": "Microsoft Outlook",
+    "description": "E-Mail-Client",
+    "type": "mail_client",
+    "category": "client",
+    "status": "active",
+    "criticality": "high"
+  },
+  "technical": {
+    "software": "Microsoft Outlook",
+    "version": "16.80",
+    "platform": "macOS 14.5"
+  }
+}
+```
 
 ---
 
-## 🗄️ Nächster Schritt: PostgreSQL-Migration
+## 🔍 Quality Analyzer
 
-### Vorbereitung (bereits vorhanden)
+Der Quality Analyzer bewertet automatisch die Vollständigkeit aller generierten JSONs:
 
-Die Datenbank-Schemas sind dokumentiert:
-- `documents/nice2know_json_schema_referenz.md`
-- `documents/nice2know_projektplan.md`
+```python
+from utils.quality_analyzer import QualityAnalyzer
 
-### Geplante Tabellen
+analyzer = QualityAnalyzer()
+quality = analyzer.analyze_json(json_data, json_type='problem')
+
+# Ausgabe:
+{
+    'complete': ['title', 'description', 'severity'],
+    'missing': ['affected_users', 'frequency'],
+    'unclear': ['symptoms'],
+    'summary': {
+        'completeness_percent': 75.0,
+        'complete_count': 3,
+        'missing_count': 2,
+        'unclear_count': 1,
+        'critical_missing': 0
+    }
+}
+```
+
+**Erkennungsregeln:**
+- **Missing**: Feld ist `null`, leerer String oder nicht vorhanden
+- **Unclear**: Werte wie "unknown", "n/a", "not specified", "TBD"
+- **Critical**: Pflichtfelder basierend auf JSON-Type
+
+---
+
+## 📧 Confirmation Mails
+
+Nach erfolgreicher JSON-Generierung erhält der Absender eine HTML-Mail mit:
+
+- **Quality Dashboard**: Zeigt Completeness-Score und fehlende Felder
+- **Problem-Sektion**: Titel, Beschreibung, Symptome, Severity
+- **Solution-Sektion**: Lösungsansatz, Schritte, Komplexität
+- **Asset-Sektion**: Name, Typ, Kategorie, Technische Details
+- **Edit-Link**: Magischer Link zum Ergänzen fehlender Daten
+- **Confirm-Link**: Sofortige Bestätigung der Korrektheit
+
+**Template-Location:** `catalog/mail/added_knowledge_mail.html`
+
+---
+
+## 🗄️ PostgreSQL-Integration (Coming Soon)
+
+### Geplantes Schema
 
 ```sql
--- Problems
 CREATE TABLE problems (
-    problem_id VARCHAR(64) PRIMARY KEY,
-    mail_id VARCHAR(64),
-    asset_id VARCHAR(64),
-    data JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Solutions
-CREATE TABLE solutions (
-    solution_id VARCHAR(64) PRIMARY KEY,
-    problem_ids TEXT[],
-    asset_id VARCHAR(64),
-    data JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Assets
-CREATE TABLE assets (
-    asset_id VARCHAR(64) PRIMARY KEY,
-    data JSONB,
+    id SERIAL PRIMARY KEY,
+    problem_id VARCHAR(100) UNIQUE NOT NULL,
+    mail_id VARCHAR(100) NOT NULL,
+    asset_id VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX idx_problems_status ON problems((data->>'status'));
+CREATE INDEX idx_problems_fulltext ON problems 
+    USING GIN(to_tsvector('english', 
+        COALESCE(data->'problem'->>'title', '') || ' ' ||
+        COALESCE(data->'problem'->>'description', '')
+    ));
 ```
 
 ---
 
-## 📊 Erfolgsmetriken (Ziel)
+## 🛠️ Technische Details
 
-- **Knowledge Capture**: >80% aller Support-E-Mails automatisch verarbeitet
-- **Zeitersparnis**: 30% Reduktion bei wiederkehrenden Problemen
-- **Lösungswiederverwendung**: 40% der Cases nutzen existierende Lösungen
-- **Datenqualität**: <5% Extraktionsfehler
+### OLLAMA-Parameter
 
----
-
-## 🔮 Roadmap
-
-### ✅ Phase 1: Foundation (Abgeschlossen)
-- [x] IMAP/SMTP Mail-Processing
-- [x] OLLAMA-Integration
-- [x] JSON-Generierung (Problem, Solution, Asset)
-- [x] 2-Schritt-Pipeline (Collect → Extract)
-- [x] Fehlerbehandlung (failed/ vs processed/)
-- [x] Confirmation Mails mit Qualitäts-Indikatoren
-
-### 🚧 Phase 2: Data Layer (Aktuell)
-- [ ] PostgreSQL-Integration
-- [ ] Attachment-Processing (OCR, PDF-Text)
-- [ ] Case-JSON (Problem-Solution-Asset-Linking)
-- [ ] REST-API (CRUD-Operationen)
-- [ ] Full-Text-Suche
-
-### 📋 Phase 3: User Interface
-- [ ] Web-UI für Knowledge Base
-- [ ] Automatische Lösungsvorschläge
-- [ ] Metriken-Dashboard
-- [ ] Continuous Learning (Feedback-Loop)
-
----
-
-## 🐛 Troubleshooting
-
-### OLLAMA läuft auf CPU statt GPU
-
-```bash
-# GPU-Status prüfen
-nvidia-smi
-
-# OLLAMA neu installieren mit GPU-Support
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Modell neu laden
-ollama pull llama3:8b
-ollama list  # Sollte GPU zeigen
-```
-
-### LLM-Timeout bei Extraktion
-
-**Lösung 1**: Timeout erhöhen in `run_extract.py`
 ```python
-extract_json(mail_path, json_type, output_dir, timeout=600)  # 10 Minuten
+{
+    "model": "llama3.2:latest",
+    "temperature": 0.1,      # Deterministisch
+    "top_p": 0.9,
+    "format": "json",        # Erzwingt JSON-Output
+    "stream": False
+}
 ```
 
-**Lösung 2**: Kleineres Modell verwenden
-```bash
-ollama pull llama3.2:3b  # Schneller, weniger präzise
+### Anhang-Kategorisierung
+
+```python
+{
+    '.png, .jpg, .jpeg, .gif': 'images',
+    '.pdf, .doc, .docx': 'documents',
+    '.log, .txt': 'logs'
+}
 ```
 
-**Lösung 3**: GPU aktivieren (siehe oben)
+### Logging
 
-### IMAP-Verbindung schlägt fehl
-
-```bash
-# Test Connection
-python tests/test_mail.py
-
-# Häufige Ursachen:
-# - Firewall blockiert Ports 993/587
-# - Falsche Credentials in secrets.json
-# - 2FA aktiviert (App-Passwort nötig)
-```
+- **Location**: `storage/logs/nice2know.log`
+- **Format**: JSON-strukturiert mit Timestamps
+- **Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ---
 
-## 🤝 Beitragen
+## 🔐 Sicherheit & Datenschutz
 
-Contributions sind willkommen! Bitte Fork + Pull Request.
+- ✅ **Lokale AI-Verarbeitung**: Keine Daten verlassen das System
+- ✅ **Secrets-Management**: Credentials in gitignored `secrets.json`
+- ✅ **SSL/TLS**: Verschlüsselte IMAP/SMTP-Verbindungen
+- ✅ **File-Permissions**: Korrekte Berechtigungen für Multi-User-Umgebungen
 
 ---
 
-## 📝 Lizenz
+## 🤝 Contributing
 
-MIT License - siehe [LICENSE](LICENSE)
+Contributions sind willkommen! Bitte:
+
+1. Fork das Repository
+2. Feature-Branch erstellen (`git checkout -b feature/AmazingFeature`)
+3. Committen (`git commit -m 'Add AmazingFeature'`)
+4. Push zum Branch (`git push origin feature/AmazingFeature`)
+5. Pull Request öffnen
+
+---
+
+## 📝 Roadmap
+
+### Phase 2 (MVP) - In Arbeit
+
+- [ ] PostgreSQL-Integration
+- [ ] Magic-Link-Backend (PHP/Vue.js)
+- [ ] OCR für Attachments
+- [ ] REST-API (FastAPI)
+- [ ] OLLAMA GPU-Optimization
+
+### Phase 3 (Production)
+
+- [ ] Web-Dashboard
+- [ ] Multi-User-Support
+- [ ] Advanced Search
+- [ ] Analytics & Reporting
+- [ ] Docker-Deployment
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) für Details.
 
 ---
 
 ## 🙏 Danksagungen
 
-- **OLLAMA Team** für das exzellente lokale LLM-Framework
-- **PostgreSQL Community** für robuste Datenbank-Technologie
-- Allen Contributors dieses Projekts
+- **OLLAMA** für die lokale LLM-Engine
+- **Python-Community** für exzellente Mail-Libraries
+- **EAH Jena** für den Use-Case und Testing
 
 ---
 
-## 📧 Support
+## 📧 Kontakt
 
-Bei Fragen bitte GitHub Issue erstellen oder Kontakt aufnehmen.
+**Projektverantwortlicher:** Steve Hentschke  
+**Email:** steve.hentschke@eah-jena.de  
+**GitHub:** [nice2know](https://github.com/yourusername/nice2know)
 
 ---
 
-**Status**: Active Development (Phase 2) 🚧  
-**Aktuelle Version**: 1.0.0-beta  
-**Letzte Aktualisierung**: 15. November 2025
+**Version:** 1.2  
+**Letztes Update:** 17. November 2025  
+**Status:** Phase 1 ✅ | Phase 2 🚧
