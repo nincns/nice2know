@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "type": "n2k_identifier",
+  "classification_metadata": {
+    "processed_at": "2025-11-17T10:00:00Z",
+    "classifier_version": "1.0",
+    "processing_model": "llama3:8b"
+  },
+  "mail_classification": {
+    "type": "problem_report",
+    "confidence": 0.85,
+    "primary_intent": "Meldung eines technischen Problems",
+    "secondary_intents": [
+      "Anfrage nach Unterstützung"
+    ]
+  },
+  "content_analysis": {
+    "has_problem": true,
+    "has_solution": false,
+    "has_asset_info": true,
+    "requires_action": true,
+    "urgency_level": "high",
+    "complexity": "medium"
+  },
+  "participants": {
+    "sender": {
+      "email": "demo.user@example.org",
+      "name": "Demo User",
+      "role": "requester"
+    },
+    "recipients": [
+      {
+        "email": "it-support@example.org",
+        "name": "IT-Support",
+        "type": "to"
+      }
+    ],
+    "mentioned_persons": [
+      {
+        "name": "Max Mustermann",
+        "context": "hat ähnliches Problem bereits gemeldet"
+      }
+    ],
+    "responsible_party": "IT-Support Team"
+  },
+  "topic_classification": {
+    "main_category": "application",
+    "sub_category": "ui_issue",
+    "keywords": [
+      "Anwendung",
+      "Feature",
+      "nicht sichtbar"
+    ],
+    "related_systems": [
+      "Demo Application"
+    ]
+  },
+  "workflow_routing": {
+    "should_extract_problem": true,
+    "should_extract_solution": false,
+    "should_extract_assets": true,
+    "processing_priority": 3,
+    "estimated_processing_time": "normal"
+  },
+  "context": {
+    "is_thread_continuation": false,
+    "thread_id": null,
+    "references_ticket": null,
+    "language": "de"
+  },
+  "raw_mail_metadata": {
+    "message_id": "demo-mail-id-12345678",
+    "subject": "Feature nicht sichtbar in Anwendung",
+    "date": "2025-11-17T09:30:00Z",
+    "original_folder": "INBOX"
+  }
+}
