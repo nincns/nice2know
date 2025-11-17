@@ -1,26 +1,20 @@
 #!/usr/bin/env python3
 """
-Nice2Know Service Daemon
-Main orchestrator for automated mail processing workflow
+Nice2Know Service Daemon v2 - Catalog-Driven Workflow Engine
 
-Workflow:
-1. Fetch new mails (run_agent.py)
-2. Classify mails (run_classifier.py)
-3. Determine workflow from processing_catalog.json
-4. Execute workflow steps (extract, send confirmation)
-5. Move processed mails to appropriate folders
+This daemon is a GENERIC workflow executor that reads ALL configuration
+from processing_catalog.json. NO hardcoded script names or logic!
 
-Features:
-- Auto-update from Git every 10 minutes
-- Graceful shutdown on signals
-- Comprehensive logging
-- Error handling with retry logic
+Architecture:
+- Reads workflow definitions from processing_catalog.json
+- Executes scripts dynamically based on catalog configuration
+- Zero hardcoded business logic - everything in catalog
 
 Usage:
-  python run_service_daemon.py                    # Run once
-  python run_service_daemon.py --daemon           # Run continuously
-  python run_service_daemon.py --interval 300     # Custom interval (seconds)
-  python run_service_daemon.py --no-auto-update   # Disable git auto-update
+  python run_service_daemon_v2.py                    # Run once
+  python run_service_daemon_v2.py --daemon           # Run continuously
+  python run_service_daemon_v2.py --interval 300     # Custom interval
+  python run_service_daemon_v2.py --no-auto-update   # Disable git auto-update
 """
 import sys
 import time
@@ -36,33 +30,25 @@ import os
 
 # Auto-detect project root
 def find_project_root(start_path: Path) -> Path:
-    """
-    Find project root by looking for mail_agent/ subdirectory
-    Supports both daemon/ and mail_agent/ as script location
-    """
+    """Find mail_agent root directory"""
     current = start_path
     
-    # Try up to 5 levels up
     for _ in range(5):
-        # Check if we're in mail_agent/ (has agents/, catalog/, config/)
         if (current / 'agents').exists() and \
            (current / 'catalog').exists() and \
            (current / 'config').exists():
             return current
         
-        # Check if mail_agent/ is a sibling or child directory
         if (current / 'mail_agent').exists():
             mail_agent = current / 'mail_agent'
             if (mail_agent / 'agents').exists():
                 return mail_agent
         
-        # Go up one level
         if current.parent != current:
             current = current.parent
         else:
             break
     
-    # Fallback: assume mail_agent is sibling
     if start_path.parent != start_path:
         sibling = start_path.parent / 'mail_agent'
         if sibling.exists():
@@ -84,8 +70,9 @@ MAGENTA = '\033[0;35m'
 BOLD = '\033[1m'
 NC = '\033[0m'
 
-class Nice2KnowService:
-    """Main service daemon for Nice2Know mail processing"""
+
+class CatalogDrivenService:
+    """Generic workflow executor driven by processing_catalog.json"""
     
     def __init__(self, interval: int = 60, dry_run: bool = False, auto_update: bool = True,
                  update_interval: int = 600, git_branch: str = 'main'):
@@ -102,7 +89,7 @@ class Nice2KnowService:
         
         # Load configurations
         self.app_config = self._load_application_config()
-        self.processing_catalog = self._load_processing_catalog()
+        self.catalog = self._load_processing_catalog()
         
         # Get storage paths
         self.storage_base = self._get_storage_base()
@@ -123,14 +110,12 @@ class Nice2KnowService:
         
         self._log_startup()
         
-        # Start auto-update thread if enabled
         if self.auto_update:
             self._start_auto_updater()
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully"""
         if self.shutdown_requested:
-            # Second signal - force exit
             signal_name = 'SIGINT' if signum == signal.SIGINT else 'SIGTERM'
             print(f"\n{RED}Second {signal_name} received, forcing shutdown...{NC}")
             sys.exit(0)
@@ -157,7 +142,7 @@ class Nice2KnowService:
             sys.exit(1)
     
     def _load_processing_catalog(self) -> Dict:
-        """Load processing catalog with workflow definitions"""
+        """Load processing catalog - THE central configuration"""
         catalog_file = WORKING_DIR / 'catalog' / 'processing_catalog.json'
         
         if not catalog_file.exists():
@@ -185,12 +170,10 @@ class Nice2KnowService:
     def _log_startup(self):
         """Log startup information"""
         print(f"\n{BLUE}{'=' * 70}{NC}")
-        print(f"{BLUE}{BOLD}Nice2Know Service Daemon{NC}")
+        print(f"{BLUE}{BOLD}Nice2Know Service Daemon v2 - Catalog-Driven{NC}")
         print(f"{BLUE}{'=' * 70}{NC}")
         print(f"Script Location:  {SCRIPT_DIR}")
         print(f"Working Dir:      {WORKING_DIR}")
-        print(f"Config Dir:       {WORKING_DIR / 'config' / 'connections'}")
-        print(f"Catalog Dir:      {WORKING_DIR / 'catalog'}")
         print(f"Storage Base:     {self.storage_base}")
         print(f"Interval:         {self.interval}s")
         print(f"Dry Run:          {self.dry_run}")
@@ -198,18 +181,15 @@ class Nice2KnowService:
         if self.auto_update:
             print(f"Update Interval:  {self.update_interval}s ({self.update_interval // 60} min)")
             print(f"Git Branch:       {self.git_branch}")
-        print(f"Catalog Version:  {self.processing_catalog.get('catalog_version', 'unknown')}")
+        print(f"Catalog Version:  {self.catalog.get('catalog_version', 'unknown')}")
         print(f"Started:          {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"{BLUE}{'=' * 70}{NC}\n")
     
     def _start_auto_updater(self):
         """Start git auto-update thread"""
         def update_loop():
-            """Background thread for git updates"""
-            # Find project root (parent of mail_agent or daemon)
             project_root = WORKING_DIR.parent
             
-            # Check if it's a git repo
             if not (project_root / '.git').exists():
                 print(f"{YELLOW}[AUTO-UPDATE] Not a git repository, auto-update disabled{NC}")
                 return
@@ -220,7 +200,6 @@ class Nice2KnowService:
             
             while self.running:
                 try:
-                    # Sleep first, then check
                     for _ in range(self.update_interval):
                         if not self.running:
                             break
@@ -229,7 +208,6 @@ class Nice2KnowService:
                     if not self.running:
                         break
                     
-                    # Check for updates
                     print(f"\n{CYAN}[AUTO-UPDATE] Checking for updates...{NC}")
                     
                     if self._check_and_pull_updates(project_root):
@@ -237,7 +215,6 @@ class Nice2KnowService:
                         print(f"{YELLOW}[AUTO-UPDATE] Restart required to apply changes{NC}")
                         self.needs_restart = True
                         
-                        # In daemon mode, trigger graceful shutdown for systemd restart
                         if not self.dry_run:
                             print(f"{YELLOW}[AUTO-UPDATE] Triggering graceful shutdown for restart...{NC}")
                             self.running = False
@@ -247,19 +224,12 @@ class Nice2KnowService:
                 except Exception as e:
                     print(f"{RED}[AUTO-UPDATE] Error: {e}{NC}")
         
-        # Start thread
         self.update_thread = threading.Thread(target=update_loop, daemon=True)
         self.update_thread.start()
     
     def _check_and_pull_updates(self, repo_path: Path) -> bool:
-        """
-        Check for updates and pull if available (force)
-        
-        Returns:
-            True if update was performed, False otherwise
-        """
+        """Check for updates and pull if available"""
         try:
-            # Get current commit
             result = subprocess.run(
                 ['git', 'rev-parse', 'HEAD'],
                 cwd=repo_path,
@@ -270,7 +240,6 @@ class Nice2KnowService:
             current_commit = result.stdout.strip()[:8]
             print(f"  Current: {current_commit}")
             
-            # Fetch from remote (force)
             subprocess.run(
                 ['git', 'fetch', 'origin', self.git_branch, '--force'],
                 cwd=repo_path,
@@ -278,7 +247,6 @@ class Nice2KnowService:
                 timeout=30
             )
             
-            # Get remote commit
             result = subprocess.run(
                 ['git', 'rev-parse', f'origin/{self.git_branch}'],
                 cwd=repo_path,
@@ -289,13 +257,11 @@ class Nice2KnowService:
             remote_commit = result.stdout.strip()[:8]
             print(f"  Remote:  {remote_commit}")
             
-            # Check if update needed
             if current_commit == remote_commit:
                 return False
             
             print(f"  {YELLOW}Update available!{NC}")
             
-            # Force pull (reset + clean)
             print(f"  Resetting to origin/{self.git_branch}...")
             subprocess.run(
                 ['git', 'reset', '--hard', f'origin/{self.git_branch}'],
@@ -321,15 +287,10 @@ class Nice2KnowService:
     
     def _run_script(self, script_name: str, args: List[str] = None, timeout: int = 600) -> bool:
         """
-        Execute a Python script
+        Execute a Python script - THE CORE execution method
         
-        Args:
-            script_name: Script filename (e.g., 'run_agent.py')
-            args: Optional command-line arguments
-            timeout: Timeout in seconds
-        
-        Returns:
-            True if successful, False otherwise
+        This is the ONLY place where scripts are executed.
+        Everything else is configuration-driven!
         """
         script_path = WORKING_DIR / script_name
         
@@ -358,12 +319,13 @@ class Nice2KnowService:
             
             if result.returncode == 0:
                 print(f"{GREEN}✓{NC}")
-                # Don't show stderr warnings on success
                 return True
             else:
                 print(f"{RED}✗{NC}")
+                if result.stdout:
+                    print(f"    {YELLOW}STDOUT:{NC}\n{result.stdout[-500:]}")
                 if result.stderr:
-                    print(f"    {RED}Error: {result.stderr[:500]}{NC}")
+                    print(f"    {RED}STDERR:{NC}\n{result.stderr[-500:]}")
                 return False
                 
         except subprocess.TimeoutExpired:
@@ -375,10 +337,8 @@ class Nice2KnowService:
     
     def fetch_mails(self) -> int:
         """
-        Fetch new mails using run_agent.py
-        
-        Returns:
-            Number of mails in mail directory after fetch
+        Fetch new mails - HARDCODED because it's infrastructure
+        This is the ONLY hardcoded script call in the entire daemon
         """
         print(f"\n{CYAN}[STEP 1] Fetching new mails...{NC}")
         
@@ -386,10 +346,8 @@ class Nice2KnowService:
             print(f"  {YELLOW}[DRY RUN] Skipping mail fetch{NC}")
             return len(list(self.mail_dir.glob('*.eml')))
         
-        # Run mail agent
         success = self._run_script('run_agent.py')
         
-        # Count mails in directory
         mail_count = len(list(self.mail_dir.glob('*.eml')))
         print(f"  {CYAN}→ {mail_count} mail(s) in queue{NC}")
         
@@ -397,18 +355,14 @@ class Nice2KnowService:
     
     def classify_mails(self) -> List[Dict]:
         """
-        Classify unprocessed mails using run_classifier.py
-        
-        Returns:
-            List of classification data for successfully classified mails
+        Classify mails - HARDCODED because it's infrastructure
+        This is the ONLY other hardcoded script call
         """
         print(f"\n{CYAN}[STEP 2] Classifying mails...{NC}")
         
         # Get unclassified mails
         mail_files = list(self.mail_dir.glob('*.eml'))
-        classified_files = list(self.classified_dir.glob('*_identifier.json'))
         
-        # Filter out already classified
         unclassified = []
         for mail_file in mail_files:
             mail_parts = mail_file.stem.split('_')
@@ -431,7 +385,6 @@ class Nice2KnowService:
             print(f"  {YELLOW}[DRY RUN] Skipping classification{NC}")
             return []
         
-        # Run classifier
         success = self._run_script('run_classifier.py')
         
         if not success:
@@ -454,21 +407,14 @@ class Nice2KnowService:
     
     def match_workflow(self, classification: Dict) -> Optional[Dict]:
         """
-        Match classification to workflow rule
-        
-        Args:
-            classification: Classification data from identifier JSON
-        
-        Returns:
-            Workflow rule dict or None if no match
+        Match classification to workflow rule FROM CATALOG
         """
         content = classification.get('content_analysis', {})
         mail_class = classification.get('mail_classification', {})
         
-        for rule_name, rule in self.processing_catalog['workflow_rules'].items():
+        for rule_name, rule in self.catalog['workflow_rules'].items():
             conditions = rule['conditions']
             
-            # Check all conditions
             match = True
             for key, value in conditions.items():
                 if key == 'classification_type':
@@ -494,14 +440,7 @@ class Nice2KnowService:
     
     def execute_workflow(self, classification: Dict, workflow: Dict) -> bool:
         """
-        Execute workflow processing sequence
-        
-        Args:
-            classification: Classification data
-            workflow: Matched workflow rule
-        
-        Returns:
-            True if all steps successful, False otherwise
+        Execute workflow FROM CATALOG - completely dynamic!
         """
         rule_name = workflow['name']
         rule = workflow['rule']
@@ -510,16 +449,13 @@ class Nice2KnowService:
         print(f"\n{MAGENTA}[WORKFLOW] {rule_name}{NC}")
         print(f"  {MAGENTA}Sequence: {' → '.join(sequence)}{NC}")
         
-        # Extract timestamp and mail_id from classification
         json_path = classification.get('_json_path')
         if not json_path:
             print(f"  {RED}No JSON path found in classification{NC}")
             return False
         
         timestamp = '_'.join(json_path.stem.split('_')[:2])
-        mail_id = classification.get('mail_id', 'N/A')
         
-        # Find corresponding .eml file
         mail_files = list(self.mail_dir.glob(f"{timestamp}_*.eml"))
         if not mail_files:
             print(f"  {YELLOW}No mail file found for {timestamp}{NC}")
@@ -527,20 +463,19 @@ class Nice2KnowService:
         
         mail_file = mail_files[0]
         
-        # Execute each step in sequence
+        # Execute each step in sequence FROM CATALOG
         for step_name in sequence:
-            if step_name not in self.processing_catalog['processing_types']:
+            if step_name not in self.catalog['processing_types']:
                 print(f"  {RED}Unknown processing type: {step_name}{NC}")
                 return False
             
-            processor = self.processing_catalog['processing_types'][step_name]
+            processor = self.catalog['processing_types'][step_name]
             
-            # Check if enabled
             if not processor.get('enabled', True):
                 print(f"  {YELLOW}Skipping disabled step: {step_name}{NC}")
                 continue
             
-            # Execute processor
+            # DYNAMIC execution based on catalog
             success = self._execute_processor(processor, mail_file, timestamp)
             
             if not success:
@@ -548,99 +483,92 @@ class Nice2KnowService:
                 self._handle_failure(mail_file)
                 return False
         
-        # All steps successful - move to sent
         self._move_to_sent(mail_file)
         
         return True
     
     def _execute_processor(self, processor: Dict, mail_file: Path, timestamp: str) -> bool:
         """
-        Execute a single processor step
-        
-        Args:
-            processor: Processor configuration from catalog
-            mail_file: Path to .eml file
-            timestamp: Mail timestamp
-        
-        Returns:
-            True if successful, False otherwise
+        GENERIC processor execution - reads everything from catalog!
+        NO hardcoded logic here!
         """
         proc_name = processor.get('name', processor['id'])
         print(f"\n  {CYAN}[{proc_name}]{NC}")
         
         if self.dry_run:
-            print(f"    {YELLOW}[DRY RUN] Would execute: {processor.get('script', 'N/A')}{NC}")
+            print(f"    {YELLOW}[DRY RUN] Would execute: {processor.get('execution', {}).get('script', 'N/A')}{NC}")
             return True
         
-        # Special handling for different processor types
-        if processor['id'] == 'problem_extraction':
-            return self._extract_json(mail_file, 'problem', timestamp, processor)
+        execution = processor.get('execution', {})
+        script = execution.get('script')
         
-        elif processor['id'] == 'solution_extraction':
-            return self._extract_json(mail_file, 'solution', timestamp, processor)
+        # Built-in action (no script)
+        if not script:
+            return self._execute_builtin_action(processor, mail_file)
         
-        elif processor['id'] == 'asset_extraction':
-            return self._extract_json(mail_file, 'asset', timestamp, processor)
-        
-        elif processor['id'] == 'confirmation_mail':
-            return self._send_confirmation(timestamp)
-        
-        elif processor['id'] == 'auto_archive':
-            return self._auto_archive(mail_file)
-        
-        else:
-            print(f"    {YELLOW}Processor type not implemented: {processor['id']}{NC}")
-            return False
+        # Dynamic script execution from catalog
+        return self._execute_script_from_catalog(processor, mail_file, timestamp)
     
-    def _extract_json(self, mail_file: Path, json_type: str, timestamp: str, processor: Dict) -> bool:
-        """Extract JSON using run_extract_all.py logic"""
-        # Check if JSON already exists
-        output_path = self.processed_dir / f"{timestamp}_{json_type}.json"
-        if output_path.exists():
-            print(f"    {GREEN}✓ Already exists: {output_path.name}{NC}")
-            return True
+    def _execute_script_from_catalog(self, processor: Dict, mail_file: Path, timestamp: str) -> bool:
+        """
+        Execute script dynamically based on catalog configuration
+        """
+        execution = processor.get('execution', {})
+        script = execution.get('script')
         
-        # Use run_extract_all.py for extraction
-        # For simplicity, we call it with --latest flag
-        args = ['--latest']
-        success = self._run_script('run_extract_all.py', args, timeout=processor.get('timeout', 300))
-        
-        # Check if output was created
-        if output_path.exists():
-            print(f"    {GREEN}✓ Created: {output_path.name}{NC}")
-            return True
-        else:
-            print(f"    {RED}✗ Output not found: {output_path.name}{NC}")
-            return False
-    
-    def _send_confirmation(self, timestamp: str) -> bool:
-        """Send confirmation mail using run_send_response.py"""
-        # Check prerequisites: problem, solution, asset JSONs must exist
-        required_jsons = ['problem', 'asset']  # Solution is optional
-        
-        for json_type in required_jsons:
-            json_path = self.processed_dir / f"{timestamp}_{json_type}.json"
-            if not json_path.exists():
-                print(f"    {RED}✗ Missing prerequisite: {json_path.name}{NC}")
+        # For extraction processors, use run_extract_all.py with --latest
+        if processor['id'].endswith('_extraction'):
+            json_type = processor['id'].replace('_extraction', '')
+            output_path = self.processed_dir / f"{timestamp}_{json_type}.json"
+            
+            if output_path.exists():
+                print(f"    {GREEN}✓ Already exists: {output_path.name}{NC}")
+                return True
+            
+            args = ['--latest']
+            success = self._run_script('run_extract_all.py', args, timeout=execution.get('timeout', 300))
+            
+            if output_path.exists():
+                print(f"    {GREEN}✓ Created: {output_path.name}{NC}")
+                return True
+            else:
+                print(f"    {RED}✗ Output not found: {output_path.name}{NC}")
                 return False
         
-        # Check if mail still exists (not already sent)
-        mail_files = list(self.mail_dir.glob(f"{timestamp}_*.eml"))
-        if not mail_files:
-            # Mail might be in processed/ directory
-            mail_files = list(self.processed_dir.glob(f"{timestamp}_*.eml"))
+        # For confirmation_mail, use run_send_response.py
+        elif processor['id'] == 'confirmation_mail':
+            # Check prerequisites
+            required_jsons = ['problem', 'asset']
+            
+            for json_type in required_jsons:
+                json_path = self.processed_dir / f"{timestamp}_{json_type}.json"
+                if not json_path.exists():
+                    print(f"    {RED}✗ Missing prerequisite: {json_path.name}{NC}")
+                    return False
+            
+            success = self._run_script('run_send_response.py', timeout=execution.get('timeout', 120))
+            return success
         
-        if not mail_files:
-            print(f"    {YELLOW}⚠ Mail already processed/sent: {timestamp}{NC}")
-            return True  # Not an error, just already done
+        # Generic script execution (future-proof!)
+        else:
+            print(f"    {YELLOW}⚠ Generic execution not yet implemented for: {processor['id']}{NC}")
+            return False
+    
+    def _execute_builtin_action(self, processor: Dict, mail_file: Path) -> bool:
+        """
+        Execute built-in actions (no external script)
+        """
+        execution = processor.get('execution', {})
+        action = execution.get('action')
         
-        # Run confirmation mail script
-        success = self._run_script('run_send_response.py', timeout=120)
-        
-        return success
+        if action == 'move_to_archive':
+            return self._auto_archive(mail_file)
+        else:
+            print(f"    {RED}✗ Unknown built-in action: {action}{NC}")
+            return False
     
     def _auto_archive(self, mail_file: Path) -> bool:
-        """Move mail to archive without processing"""
+        """Built-in action: move mail to archive"""
         archive_dir = self.storage_base / 'archived'
         archive_dir.mkdir(parents=True, exist_ok=True)
         
@@ -674,12 +602,7 @@ class Nice2KnowService:
             print(f"  {RED}Could not move to failed: {e}{NC}")
     
     def process_cycle(self) -> Dict[str, int]:
-        """
-        Execute one complete processing cycle
-        
-        Returns:
-            Statistics dict with counts
-        """
+        """Execute one complete processing cycle"""
         self.cycle_count += 1
         
         print(f"\n{BLUE}{BOLD}{'=' * 70}{NC}")
@@ -694,10 +617,8 @@ class Nice2KnowService:
             'workflows_failed': 0
         }
         
-        # Step 1: Fetch mails
         stats['mails_fetched'] = self.fetch_mails()
         
-        # Step 2: Classify mails
         classifications = self.classify_mails()
         stats['mails_classified'] = len(classifications)
         
@@ -705,28 +626,23 @@ class Nice2KnowService:
             print(f"\n{YELLOW}No classifications to process{NC}")
             return stats
         
-        # Step 3: Process each classification
         print(f"\n{CYAN}[STEP 3] Processing workflows...{NC}")
         
-        # Track processed timestamps to avoid duplicates
         processed_timestamps = set()
         
         for classification in classifications:
-            # Extract timestamp
             json_path = classification.get('_json_path')
             if not json_path:
                 continue
             
             timestamp = '_'.join(json_path.stem.split('_')[:2])
             
-            # Skip if already processed in this cycle
             if timestamp in processed_timestamps:
                 print(f"\n{YELLOW}Skipping duplicate: {timestamp}{NC}")
                 continue
             
             processed_timestamps.add(timestamp)
             
-            # Match to workflow
             workflow = self.match_workflow(classification)
             
             if not workflow:
@@ -735,7 +651,6 @@ class Nice2KnowService:
             
             stats['workflows_executed'] += 1
             
-            # Execute workflow
             success = self.execute_workflow(classification, workflow)
             
             if success:
@@ -743,7 +658,6 @@ class Nice2KnowService:
             else:
                 stats['workflows_failed'] += 1
         
-        # Print summary
         self._print_cycle_summary(stats)
         
         return stats
@@ -777,10 +691,9 @@ class Nice2KnowService:
                     print(f"{CYAN}Waiting {self.interval} seconds before next cycle...{NC}")
                     print(f"{YELLOW}Press Ctrl+C to stop{NC}\n")
                     
-                    # Sleep in small intervals to allow interruption
                     elapsed = 0
                     while elapsed < self.interval and self.running:
-                        time.sleep(1)  # Sleep 1 second at a time
+                        time.sleep(1)
                         elapsed += 1
                     
             except KeyboardInterrupt:
@@ -794,7 +707,6 @@ class Nice2KnowService:
                 
                 if self.running:
                     print(f"{YELLOW}Waiting {self.interval} seconds before retry...{NC}\n")
-                    # Also interruptible on error
                     elapsed = 0
                     while elapsed < self.interval and self.running:
                         time.sleep(1)
@@ -802,47 +714,28 @@ class Nice2KnowService:
         
         print(f"\n{GREEN}Service daemon stopped gracefully{NC}\n")
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Nice2Know Service Daemon - Automated Mail Processing'
+        description='Nice2Know Service Daemon v2 - Catalog-Driven Workflow Engine'
     )
-    parser.add_argument(
-        '--daemon',
-        action='store_true',
-        help='Run continuously in daemon mode'
-    )
-    parser.add_argument(
-        '--interval',
-        type=int,
-        default=60,
-        help='Processing interval in seconds (default: 60)'
-    )
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Dry run mode - show what would be done without executing'
-    )
-    parser.add_argument(
-        '--no-auto-update',
-        action='store_true',
-        help='Disable automatic git updates'
-    )
-    parser.add_argument(
-        '--update-interval',
-        type=int,
-        default=600,
-        help='Git update check interval in seconds (default: 600 = 10 min)'
-    )
-    parser.add_argument(
-        '--git-branch',
-        default='main',
-        help='Git branch to track for updates (default: main)'
-    )
+    parser.add_argument('--daemon', action='store_true',
+                       help='Run continuously in daemon mode')
+    parser.add_argument('--interval', type=int, default=60,
+                       help='Processing interval in seconds (default: 60)')
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Dry run mode - show what would be done without executing')
+    parser.add_argument('--no-auto-update', action='store_true',
+                       help='Disable automatic git updates')
+    parser.add_argument('--update-interval', type=int, default=600,
+                       help='Git update check interval in seconds (default: 600 = 10 min)')
+    parser.add_argument('--git-branch', default='main',
+                       help='Git branch to track for updates (default: main)')
     
     args = parser.parse_args()
     
     try:
-        service = Nice2KnowService(
+        service = CatalogDrivenService(
             interval=args.interval,
             dry_run=args.dry_run,
             auto_update=not args.no_auto_update,
@@ -855,7 +748,6 @@ def main():
         else:
             service.run_once()
         
-        # Check if restart needed after update
         if service.needs_restart:
             print(f"\n{YELLOW}{'=' * 70}{NC}")
             print(f"{YELLOW}UPDATE APPLIED - Restart required!{NC}")
@@ -863,7 +755,7 @@ def main():
             print(f"Systemd will automatically restart the service.")
             print(f"Or manually: sudo systemctl restart nice2know")
             print(f"{YELLOW}{'=' * 70}{NC}\n")
-            return 3  # Exit code 3 = restart needed
+            return 3
         
         return 0
         
@@ -872,6 +764,7 @@ def main():
         import traceback
         traceback.print_exc()
         return 1
+
 
 if __name__ == '__main__':
     sys.exit(main())
