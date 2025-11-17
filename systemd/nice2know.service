@@ -1,0 +1,48 @@
+[Unit]
+Description=Nice2Know Mail Processing Service with Auto-Update
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=shentsch
+Group=shentsch
+WorkingDirectory=/opt/nice2know/daemon
+
+# Use virtual environment Python
+ExecStart=/opt/nice2know/venv/bin/python /opt/nice2know/daemon/run_service_daemon.py --daemon --interval 60 --update-interval 600
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Auto-restart on update (exit code 3)
+SuccessExitStatus=3
+
+# Restart limits
+StartLimitInterval=350
+StartLimitBurst=10
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/opt/nice2know/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nice2know
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/opt/nice2know/storage
+
+# Resource limits
+LimitNOFILE=4096
+MemoryMax=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target
