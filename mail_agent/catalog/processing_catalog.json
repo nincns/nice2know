@@ -1,6 +1,6 @@
 {
   "catalog_version": "1.0.0",
-  "last_updated": "2025-11-17T10:00:00Z",
+  "last_updated": "2025-11-17T22:45:00Z",
   "description": "Katalog aller verfügbaren Verarbeitungsprozesse für klassifizierte E-Mails",
   
   "processing_types": {
@@ -164,12 +164,12 @@
       "description": "Sendet Bestätigungs-Mail an Melder mit extrahierten Informationen",
       "enabled": true,
       "triggers": {
-        "classification_type": ["problem_report"],
+        "classification_type": ["problem_report", "solution_documentation", "information_request"],
         "content_flags": {
           "requires_action": true
         },
         "workflow_routing": {
-          "should_extract_problem": true
+          "should_extract_solution": true
         }
       },
       "execution": {
@@ -178,9 +178,7 @@
         "timeout": 60
       },
       "prerequisites": [
-        "problem_extraction",
-        "solution_extraction",
-        "asset_extraction"
+        "solution_extraction"
       ],
       "output": {
         "directory": "sent_mails",
@@ -309,7 +307,8 @@
       },
       "processing_sequence": [
         "solution_extraction",
-        "asset_extraction"
+        "asset_extraction",
+        "confirmation_mail"
       ],
       "parallel_allowed": false
     },
