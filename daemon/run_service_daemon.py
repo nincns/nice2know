@@ -32,6 +32,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 import argparse
 import threading
+import os
 
 # Auto-detect project root
 def find_project_root(start_path: Path) -> Path:
@@ -348,7 +349,11 @@ class Nice2KnowService:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd=str(WORKING_DIR)
+                cwd=str(WORKING_DIR),
+                env={
+                    **os.environ,
+                    'PYTHONPATH': str(WORKING_DIR)
+                }
             )
             
             if result.returncode == 0:
