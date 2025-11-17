@@ -358,11 +358,12 @@ class Nice2KnowService:
             
             if result.returncode == 0:
                 print(f"{GREEN}✓{NC}")
+                # Don't show stderr warnings on success
                 return True
             else:
                 print(f"{RED}✗{NC}")
                 if result.stderr:
-                    print(f"    {RED}Error: {result.stderr[:200]}{NC}")
+                    print(f"    {RED}Error: {result.stderr[:500]}{NC}")
                 return False
                 
         except subprocess.TimeoutExpired:
