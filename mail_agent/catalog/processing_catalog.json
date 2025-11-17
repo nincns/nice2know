@@ -1,0 +1,377 @@
+{
+  "catalog_version": "1.0.0",
+  "last_updated": "2025-11-17T10:00:00Z",
+  "description": "Katalog aller verfügbaren Verarbeitungsprozesse für klassifizierte E-Mails",
+  
+  "processing_types": {
+    "problem_extraction": {
+      "id": "problem_extraction",
+      "name": "Problem Extraktion",
+      "description": "Extrahiert Problembeschreibung aus E-Mail",
+      "enabled": true,
+      "triggers": {
+        "classification_type": ["problem_report"],
+        "content_flags": {
+          "has_problem": true
+        },
+        "workflow_routing": {
+          "should_extract_problem": true
+        }
+      },
+      "execution": {
+        "script": "agents/llm_request.py",
+        "prompt_file": "catalog/prompts/extract_problem.txt",
+        "schema_file": "catalog/json_store/problem_schema.json",
+        "output_suffix": "_problem.json",
+        "timeout": 300,
+        "priority_mapping": {
+          "critical": 5,
+          "high": 4,
+          "normal": 3,
+          "low": 2
+        }
+      },
+      "prerequisites": [],
+      "output": {
+        "directory": "processed",
+        "type": "n2k_problem",
+        "schema_version": "1.0.0"
+      },
+      "quality_checks": [
+        "description_length >= 200",
+        "symptoms.length >= 1",
+        "classification.category != null",
+        "classification.severity != null"
+      ]
+    },
+    
+    "solution_extraction": {
+      "id": "solution_extraction",
+      "name": "Solution Extraktion",
+      "description": "Extrahiert Lösungsdokumentation aus E-Mail",
+      "enabled": true,
+      "triggers": {
+        "classification_type": ["solution_documentation", "problem_report"],
+        "content_flags": {
+          "has_solution": true
+        },
+        "workflow_routing": {
+          "should_extract_solution": true
+        }
+      },
+      "execution": {
+        "script": "agents/llm_request.py",
+        "prompt_file": "catalog/prompts/extract_solution.txt",
+        "schema_file": "catalog/json_store/solution_schema.json",
+        "output_suffix": "_solution.json",
+        "timeout": 300,
+        "priority_mapping": {
+          "critical": 5,
+          "high": 4,
+          "normal": 3,
+          "low": 2
+        }
+      },
+      "prerequisites": [],
+      "output": {
+        "directory": "processed",
+        "type": "n2k_solution",
+        "schema_version": "1.0.0"
+      },
+      "quality_checks": [
+        "description_length >= 200",
+        "steps.length >= 1 OR outcome.tested == false",
+        "solution.type != null",
+        "solution.approach != null"
+      ]
+    },
+    
+    "asset_extraction": {
+      "id": "asset_extraction",
+      "name": "Asset Extraktion",
+      "description": "Extrahiert IT-Asset-Informationen aus E-Mail",
+      "enabled": true,
+      "triggers": {
+        "classification_type": ["problem_report", "solution_documentation"],
+        "content_flags": {
+          "has_asset_info": true
+        },
+        "workflow_routing": {
+          "should_extract_assets": true
+        }
+      },
+      "execution": {
+        "script": "agents/llm_request.py",
+        "prompt_file": "catalog/prompts/extract_asset.txt",
+        "schema_file": "catalog/json_store/asset_schema.json",
+        "output_suffix": "_asset.json",
+        "timeout": 300,
+        "priority_mapping": {
+          "critical": 5,
+          "high": 4,
+          "normal": 3,
+          "low": 2
+        }
+      },
+      "prerequisites": [],
+      "output": {
+        "directory": "processed",
+        "type": "n2k_asset",
+        "schema_version": "1.0.0"
+      },
+      "quality_checks": [
+        "asset.name != null",
+        "asset.type != null",
+        "asset.category != null",
+        "ownership.email != null"
+      ]
+    },
+    
+    "case_creation": {
+      "id": "case_creation",
+      "name": "Case Erstellung",
+      "description": "Erstellt einen Case aus Problem/Solution/Asset JSONs",
+      "enabled": false,
+      "triggers": {
+        "classification_type": ["problem_report"],
+        "content_flags": {
+          "requires_action": true
+        },
+        "manual_trigger": true
+      },
+      "execution": {
+        "script": "agents/case_creator.py",
+        "output_suffix": "_case.json",
+        "timeout": 60
+      },
+      "prerequisites": [
+        "problem_extraction"
+      ],
+      "output": {
+        "directory": "processed",
+        "type": "n2k_case",
+        "schema_version": "1.0.0"
+      },
+      "quality_checks": [
+        "entities.problem_id != null",
+        "entities.asset_id != null"
+      ]
+    },
+    
+    "confirmation_mail": {
+      "id": "confirmation_mail",
+      "name": "Bestätigungs-Mail",
+      "description": "Sendet Bestätigungs-Mail an Melder mit extrahierten Informationen",
+      "enabled": true,
+      "triggers": {
+        "classification_type": ["problem_report"],
+        "content_flags": {
+          "requires_action": true
+        },
+        "workflow_routing": {
+          "should_extract_problem": true
+        }
+      },
+      "execution": {
+        "script": "agents/send_confirmation_mail.py",
+        "template_file": "catalog/mail/added_knowledge_mail.html",
+        "timeout": 60
+      },
+      "prerequisites": [
+        "problem_extraction",
+        "solution_extraction",
+        "asset_extraction"
+      ],
+      "output": {
+        "directory": "sent_mails",
+        "type": "confirmation_mail",
+        "format": "html"
+      },
+      "quality_checks": []
+    },
+    
+    "information_request_response": {
+      "id": "information_request_response",
+      "name": "Informationsanfrage Antwort",
+      "description": "Beantwortet reine Informationsanfragen (ohne Problemextraktion)",
+      "enabled": false,
+      "triggers": {
+        "classification_type": ["information_request"],
+        "content_flags": {
+          "has_problem": false,
+          "requires_action": true
+        }
+      },
+      "execution": {
+        "script": "agents/info_responder.py",
+        "timeout": 120
+      },
+      "prerequisites": [],
+      "output": {
+        "directory": "sent_mails",
+        "type": "info_response",
+        "format": "text"
+      },
+      "quality_checks": []
+    },
+    
+    "auto_archive": {
+      "id": "auto_archive",
+      "name": "Auto-Archivierung",
+      "description": "Archiviert Status-Updates und Diskussionen ohne weitere Verarbeitung",
+      "enabled": true,
+      "triggers": {
+        "classification_type": ["status_update", "discussion"],
+        "content_flags": {
+          "requires_action": false
+        }
+      },
+      "execution": {
+        "script": null,
+        "action": "move_to_archive",
+        "timeout": 5
+      },
+      "prerequisites": [],
+      "output": {
+        "directory": "archived",
+        "type": "archived_mail",
+        "format": "eml"
+      },
+      "quality_checks": []
+    }
+  },
+  
+  "processing_queues": {
+    "high_priority": {
+      "name": "High Priority Queue",
+      "description": "Für kritische und hochpriorisierte Mails",
+      "priority_levels": [5, 4],
+      "urgency_levels": ["critical", "high"],
+      "max_parallel": 3,
+      "timeout_multiplier": 1.0
+    },
+    "normal_priority": {
+      "name": "Normal Priority Queue",
+      "description": "Für Standard-Verarbeitung",
+      "priority_levels": [3],
+      "urgency_levels": ["normal"],
+      "max_parallel": 5,
+      "timeout_multiplier": 1.0
+    },
+    "low_priority": {
+      "name": "Low Priority Queue",
+      "description": "Für niedrigpriorisierte Mails",
+      "priority_levels": [2, 1],
+      "urgency_levels": ["low"],
+      "max_parallel": 2,
+      "timeout_multiplier": 1.5
+    }
+  },
+  
+  "workflow_rules": {
+    "problem_with_solution": {
+      "name": "Problem mit Lösung",
+      "description": "E-Mail enthält sowohl Problem als auch Lösung",
+      "conditions": {
+        "has_problem": true,
+        "has_solution": true
+      },
+      "processing_sequence": [
+        "problem_extraction",
+        "solution_extraction",
+        "asset_extraction",
+        "confirmation_mail"
+      ],
+      "parallel_allowed": false
+    },
+    
+    "problem_only": {
+      "name": "Problem ohne Lösung",
+      "description": "E-Mail enthält nur Problem",
+      "conditions": {
+        "has_problem": true,
+        "has_solution": false
+      },
+      "processing_sequence": [
+        "problem_extraction",
+        "asset_extraction",
+        "confirmation_mail"
+      ],
+      "parallel_allowed": false
+    },
+    
+    "solution_only": {
+      "name": "Lösung ohne Problem",
+      "description": "E-Mail enthält nur Lösungsdokumentation",
+      "conditions": {
+        "has_problem": false,
+        "has_solution": true
+      },
+      "processing_sequence": [
+        "solution_extraction",
+        "asset_extraction"
+      ],
+      "parallel_allowed": false
+    },
+    
+    "info_request": {
+      "name": "Informationsanfrage",
+      "description": "Reine Informationsanfrage",
+      "conditions": {
+        "classification_type": "information_request",
+        "has_problem": false
+      },
+      "processing_sequence": [
+        "information_request_response"
+      ],
+      "parallel_allowed": false
+    },
+    
+    "auto_archive_only": {
+      "name": "Nur Archivieren",
+      "description": "Status-Updates und Diskussionen",
+      "conditions": {
+        "classification_type": ["status_update", "discussion"],
+        "requires_action": false
+      },
+      "processing_sequence": [
+        "auto_archive"
+      ],
+      "parallel_allowed": false
+    }
+  },
+  
+  "error_handling": {
+    "retry_policy": {
+      "max_retries": 3,
+      "retry_delay_seconds": 60,
+      "backoff_multiplier": 2.0
+    },
+    "fallback_actions": {
+      "extraction_failed": "move_to_failed",
+      "timeout": "move_to_failed",
+      "invalid_json": "move_to_failed",
+      "quality_check_failed": "move_to_manual_review"
+    },
+    "notification": {
+      "on_failure": true,
+      "on_quality_issues": true,
+      "notification_email": "it-support@example.org"
+    }
+  },
+  
+  "monitoring": {
+    "metrics": [
+      "processing_time_avg",
+      "success_rate",
+      "quality_score_avg",
+      "queue_length",
+      "failed_extractions"
+    ],
+    "alerts": {
+      "queue_length_threshold": 50,
+      "failure_rate_threshold": 0.20,
+      "processing_time_threshold_seconds": 600
+    }
+  }
+}
