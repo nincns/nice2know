@@ -12,7 +12,8 @@
     "primary_intent": "Meldung eines technischen Problems",
     "secondary_intents": [
       "Anfrage nach Unterstützung"
-    ]
+    ],
+    "conversation_summary": "Mehrteilige Diskussion über Thoska-Karten-Bestellung: Klärung von Budget-Timing, Layout-Freigabeprozess mit SECANDA, und finale Abstimmung durch Frau Professorin Mitte wegen Sponsoring-Überlegungen"
   },
   "content_analysis": {
     "has_problem": true,
