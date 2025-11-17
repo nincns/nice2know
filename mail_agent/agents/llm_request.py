@@ -2,6 +2,8 @@
 """
 Nice2Know - LLM Request Script
 Standalone script for making LLM requests with prompts and structured output
+
+PATCHED: Increased num_predict to 2048 tokens for complete JSON generation
 """
 import sys
 import json
@@ -92,17 +94,19 @@ Remember: Return ONLY valid JSON matching the structure above. No explanations."
             full_prompt = prompt
         
         # Build request with strict JSON formatting
+        # PATCHED: Added num_predict for complete JSON generation
         data = {
             "model": self.model,
             "prompt": full_prompt,
             "stream": False,
             "temperature": 0.1,
             "top_p": 0.9,
-            "format": "json"  # Force JSON
+            "format": "json",  # Force JSON
+            "num_predict": 2048  # Max output tokens (increased for complex JSONs)
         }
         
         try:
-            print(f"[LLM] Sending request...")
+            print(f"[LLM] Sending request (max {data['num_predict']} tokens)...")
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=data,
