@@ -10,10 +10,17 @@ Workflow:
 4. Execute workflow steps (extract, send confirmation)
 5. Move processed mails to appropriate folders
 
+Features:
+- Auto-update from Git every 10 minutes
+- Graceful shutdown on signals
+- Comprehensive logging
+- Error handling with retry logic
+
 Usage:
   python run_service_daemon.py                    # Run once
   python run_service_daemon.py --daemon           # Run continuously
   python run_service_daemon.py --interval 300     # Custom interval (seconds)
+  python run_service_daemon.py --no-auto-update   # Disable git auto-update
 """
 import sys
 import time
@@ -24,6 +31,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, List, Any
 import argparse
+import threading
 
 # Auto-detect project root
 def find_project_root(start_path: Path) -> Path:
@@ -78,12 +86,18 @@ NC = '\033[0m'
 class Nice2KnowService:
     """Main service daemon for Nice2Know mail processing"""
     
-    def __init__(self, interval: int = 60, dry_run: bool = False):
+    def __init__(self, interval: int = 60, dry_run: bool = False, auto_update: bool = True,
+                 update_interval: int = 600, git_branch: str = 'main'):
         self.interval = interval
         self.dry_run = dry_run
         self.running = True
         self.cycle_count = 0
         self.shutdown_requested = False
+        self.auto_update = auto_update
+        self.update_interval = update_interval
+        self.git_branch = git_branch
+        self.needs_restart = False
+        self.update_thread = None
         
         # Load configurations
         self.app_config = self._load_application_config()
@@ -107,6 +121,10 @@ class Nice2KnowService:
         signal.signal(signal.SIGTERM, self._signal_handler)
         
         self._log_startup()
+        
+        # Start auto-update thread if enabled
+        if self.auto_update:
+            self._start_auto_updater()
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully"""
@@ -175,9 +193,130 @@ class Nice2KnowService:
         print(f"Storage Base:     {self.storage_base}")
         print(f"Interval:         {self.interval}s")
         print(f"Dry Run:          {self.dry_run}")
+        print(f"Auto-Update:      {self.auto_update}")
+        if self.auto_update:
+            print(f"Update Interval:  {self.update_interval}s ({self.update_interval // 60} min)")
+            print(f"Git Branch:       {self.git_branch}")
         print(f"Catalog Version:  {self.processing_catalog.get('catalog_version', 'unknown')}")
         print(f"Started:          {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"{BLUE}{'=' * 70}{NC}\n")
+    
+    def _start_auto_updater(self):
+        """Start git auto-update thread"""
+        def update_loop():
+            """Background thread for git updates"""
+            # Find project root (parent of mail_agent or daemon)
+            project_root = WORKING_DIR.parent
+            
+            # Check if it's a git repo
+            if not (project_root / '.git').exists():
+                print(f"{YELLOW}[AUTO-UPDATE] Not a git repository, auto-update disabled{NC}")
+                return
+            
+            print(f"{GREEN}[AUTO-UPDATE] Started (checking every {self.update_interval // 60} min){NC}")
+            print(f"{GREEN}[AUTO-UPDATE] Repository: {project_root}{NC}")
+            print(f"{GREEN}[AUTO-UPDATE] Branch: {self.git_branch}{NC}\n")
+            
+            while self.running:
+                try:
+                    # Sleep first, then check
+                    for _ in range(self.update_interval):
+                        if not self.running:
+                            break
+                        time.sleep(1)
+                    
+                    if not self.running:
+                        break
+                    
+                    # Check for updates
+                    print(f"\n{CYAN}[AUTO-UPDATE] Checking for updates...{NC}")
+                    
+                    if self._check_and_pull_updates(project_root):
+                        print(f"{GREEN}[AUTO-UPDATE] Update successful!{NC}")
+                        print(f"{YELLOW}[AUTO-UPDATE] Restart required to apply changes{NC}")
+                        self.needs_restart = True
+                        
+                        # In daemon mode, trigger graceful shutdown for systemd restart
+                        if not self.dry_run:
+                            print(f"{YELLOW}[AUTO-UPDATE] Triggering graceful shutdown for restart...{NC}")
+                            self.running = False
+                    else:
+                        print(f"{GREEN}[AUTO-UPDATE] Already up to date{NC}")
+                    
+                except Exception as e:
+                    print(f"{RED}[AUTO-UPDATE] Error: {e}{NC}")
+        
+        # Start thread
+        self.update_thread = threading.Thread(target=update_loop, daemon=True)
+        self.update_thread.start()
+    
+    def _check_and_pull_updates(self, repo_path: Path) -> bool:
+        """
+        Check for updates and pull if available (force)
+        
+        Returns:
+            True if update was performed, False otherwise
+        """
+        try:
+            # Get current commit
+            result = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            current_commit = result.stdout.strip()[:8]
+            print(f"  Current: {current_commit}")
+            
+            # Fetch from remote (force)
+            subprocess.run(
+                ['git', 'fetch', 'origin', self.git_branch, '--force'],
+                cwd=repo_path,
+                capture_output=True,
+                timeout=30
+            )
+            
+            # Get remote commit
+            result = subprocess.run(
+                ['git', 'rev-parse', f'origin/{self.git_branch}'],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            remote_commit = result.stdout.strip()[:8]
+            print(f"  Remote:  {remote_commit}")
+            
+            # Check if update needed
+            if current_commit == remote_commit:
+                return False
+            
+            print(f"  {YELLOW}Update available!{NC}")
+            
+            # Force pull (reset + clean)
+            print(f"  Resetting to origin/{self.git_branch}...")
+            subprocess.run(
+                ['git', 'reset', '--hard', f'origin/{self.git_branch}'],
+                cwd=repo_path,
+                capture_output=True,
+                timeout=30,
+                check=True
+            )
+            
+            print(f"  Cleaning untracked files...")
+            subprocess.run(
+                ['git', 'clean', '-fd'],
+                cwd=repo_path,
+                capture_output=True,
+                timeout=30
+            )
+            
+            return True
+            
+        except Exception as e:
+            print(f"  {RED}Error during update: {e}{NC}")
+            return False
     
     def _run_script(self, script_name: str, args: List[str] = None, timeout: int = 600) -> bool:
         """
@@ -677,19 +816,48 @@ def main():
         action='store_true',
         help='Dry run mode - show what would be done without executing'
     )
+    parser.add_argument(
+        '--no-auto-update',
+        action='store_true',
+        help='Disable automatic git updates'
+    )
+    parser.add_argument(
+        '--update-interval',
+        type=int,
+        default=600,
+        help='Git update check interval in seconds (default: 600 = 10 min)'
+    )
+    parser.add_argument(
+        '--git-branch',
+        default='main',
+        help='Git branch to track for updates (default: main)'
+    )
     
     args = parser.parse_args()
     
     try:
         service = Nice2KnowService(
             interval=args.interval,
-            dry_run=args.dry_run
+            dry_run=args.dry_run,
+            auto_update=not args.no_auto_update,
+            update_interval=args.update_interval,
+            git_branch=args.git_branch
         )
         
         if args.daemon:
             service.run_daemon()
         else:
             service.run_once()
+        
+        # Check if restart needed after update
+        if service.needs_restart:
+            print(f"\n{YELLOW}{'=' * 70}{NC}")
+            print(f"{YELLOW}UPDATE APPLIED - Restart required!{NC}")
+            print(f"{YELLOW}{'=' * 70}{NC}")
+            print(f"Systemd will automatically restart the service.")
+            print(f"Or manually: sudo systemctl restart nice2know")
+            print(f"{YELLOW}{'=' * 70}{NC}\n")
+            return 3  # Exit code 3 = restart needed
         
         return 0
         
