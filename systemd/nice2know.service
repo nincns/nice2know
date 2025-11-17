@@ -7,7 +7,8 @@ Wants=postgresql.service
 Type=simple
 User=shentsch
 Group=shentsch
-WorkingDirectory=/opt/nice2know/daemon
+# FIX: Working Directory muss mail_agent sein, nicht daemon!
+WorkingDirectory=/opt/nice2know/mail_agent
 
 # Use virtual environment Python
 ExecStart=/opt/nice2know/venv/bin/python /opt/nice2know/daemon/run_service_daemon.py --daemon --interval 60 --update-interval 600
@@ -26,6 +27,8 @@ StartLimitBurst=10
 # Environment
 Environment="PYTHONUNBUFFERED=1"
 Environment="PATH=/opt/nice2know/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# FIX: PYTHONPATH hinzufügen für sichere Imports
+Environment="PYTHONPATH=/opt/nice2know/mail_agent"
 
 # Logging
 StandardOutput=journal
